@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EventForce | Next-Gen Intelligent Event Operations & Workforce Dispatch</title>
+  <meta name="description" content="Next-Generation Enterprise Event Operations & Live Workforce Management Platform with Dynamic QR Pass Verification, Roster Scheduling, and Real-Time Telemetry.">
+  
+  <!-- Google Fonts: Outfit (Display), Plus Jakarta Sans (UI), JetBrains Mono (Codes) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- QRCode.js CDN for dynamic cryptographic pass generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  
+  <!-- Chart.js CDN for Admin Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Luxury Vanilla CSS Design System -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="ambient-glow-bg">
+
+  <!-- ==================================================================== -->
+  <!-- TOP ANNOUNCEMENT BAR & QUICK DEMO PERSONA SWITCHER                   -->
+  <!-- ==================================================================== -->
+  <aside class="top-bar" aria-label="Role Demo Quick Switcher">
+    <div class="top-bar-container">
+      <div class="flex items-center gap-2">
+        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981; box-shadow:0 0 10px #10b981;"></span>
+        <span style="color:#cbd5e1; font-weight:600;">EventForce v2.5 — Autonomous Operations & Live Workforce Dispatch</span>
+      </div>
+
+      <!-- Quick Demo Switcher -->
+      <div class="persona-switcher">
+        <span style="color:#64748b; font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em;">Interactive Persona:</span>
+        <button onclick="quickSwitchDemo('admin')" class="persona-btn persona-btn-admin" title="Switch to Event Director">
+          <i class="fas fa-crown"></i> 👑 Event Director
+        </button>
+        <button onclick="quickSwitchDemo('staff')" class="persona-btn persona-btn-staff" title="Switch to Crew Staff">
+          <i class="fas fa-hard-hat"></i> 👷 Crew Staff
+        </button>
+        <button onclick="quickSwitchDemo('attendee')" class="persona-btn persona-btn-attendee" title="Switch to Student Attendee">
+          <i class="fas fa-user-graduate"></i> 🎓 Attendee (Sree)
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================================================================== -->
+  <!-- MAIN NAVIGATION BAR                                                  -->
+  <!-- ==================================================================== -->
+  <header class="glass-header">
+    <div class="nav-container">
+      
+      <!-- Brand Logo -->
+      <div class="nav-brand" onclick="switchTab('events')" title="Go to Events Showcase">
+        <div class="brand-icon">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div>
+          <div class="brand-title">
+            Event<span>Force</span>
+            <span class="brand-badge">PRO v2.5</span>
+          </div>
+          <p style="font-size:0.7rem; color:var(--text-dim); font-weight:600; margin-top:-2px;">Operations & Crew Command Center</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs" id="mainNavTabs" aria-label="Main Navigation">
+        <button id="navEvents" onclick="switchTab('events')" class="nav-tab-btn active text-indigo-600">
+          <i class="fas fa-sparkles text-xs"></i>
+          <span>Events Showcase</span>
+        </button>
+        <button id="navMyTickets" onclick="switchTab('my-tickets')" class="nav-tab-btn">
+          <i class="fas fa-ticket-alt text-xs"></i>
+          <span>My Passes</span>
+        </button>
+        <button id="navWorkforce" onclick="switchTab('workforce')" class="nav-tab-btn">
+          <i class="fas fa-users-cog text-xs"></i>
+          <span>Workforce Crew</span>
+        </button>
+        <button id="navAdmin" onclick="switchTab('admin')" class="nav-tab-btn">
+          <i class="fas fa-chart-line text-xs"></i>
+          <span>Director Console</span>
+        </button>
+      </nav>
+
+      <!-- Auth Action Section -->
+      <div id="userSection" class="flex items-center gap-2">
+        <!-- Injected via app.js -->
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================================================================== -->
+  <!-- MAIN APPLICATION CONTENT                                             -->
+  <!-- ==================================================================== -->
+  <main class="flex-grow">
+    
+    <!-- ================================================================== -->
+    <!-- VIEW 1: EVENTS SHOWCASE (Catalog, Spotlight & Luminaries)          -->
+    <!-- ================================================================== -->
+    <section id="viewEvents">
+      
+      <!-- Hero Section with Deep Mesh Atmosphere -->
+      <div class="ambient-hero-mesh hero-wrapper">
+        <div class="hero-pill-badge">
+          <i class="fas fa-star" style="color:#f59e0b;"></i>
+          <span>Next-Generation Operations & Automated Crew Allocation</span>
+        </div>
+
+        <h1 class="hero-heading">
+          Orchestrate Flagship Summits & <span class="hero-gradient-text">Mobilize Dynamic Crew</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          From international keynote conventions to high-stakes hackathons — reserve cryptographic admission passes, monitor gate check-in queues, and track live workforce shift execution in real-time.
+        </p>
+
+        <!-- Search Bar -->
+        <div class="search-capsule">
+          <i class="fas fa-search" style="color:#64748b; font-size:0.95rem; margin-left:0.35rem;"></i>
+          <input type="text" id="eventSearchInput" 
+                 placeholder="Search summits by title, keywords, tech tracks, or venue..."
+                 class="search-input"
+                 autocomplete="off">
+          <button onclick="loadEvents()" class="ef-btn ef-btn-primary ef-btn-sm" style="flex-shrink:0;">
+            <span>Search</span>
+            <i class="fas fa-arrow-right text-xs"></i>
+          </button>
+        </div>
+
+        <!-- Category Filter Pills -->
+        <div class="filter-pills-row" role="tablist">
+          <button onclick="filterCategory('All')" data-category="All" class="cat-pill active">
+            <i class="fas fa-globe mr-1"></i> All Summits
+          </button>
+          <button onclick="filterCategory('Conference')" data-category="Conference" class="cat-pill">
+            🎙️ Conference
+          </button>
+          <button onclick="filterCategory('Technical')" data-category="Technical" class="cat-pill">
+            💻 Technical & Hackathons
+          </button>
+          <button onclick="filterCategory('Cultural')" data-category="Cultural" class="cat-pill">
+            🎭 Arts & Concerts
+          </button>
+          <button onclick="filterCategory('Sports')" data-category="Sports" class="cat-pill">
+            🏆 Esports Arena
+          </button>
+          <button onclick="filterCategory('Workshop')" data-category="Workshop" class="cat-pill">
+            🛠️ Tech Masterclasses
+          </button>
+        </div>
+
+        <!-- Live KPI Telemetry Counters -->
+        <div class="telemetry-grid">
+          <div class="telemetry-card">
+            <span class="telemetry-value" style="color:#818cf8;">9+</span>
+            <span class="telemetry-label">Active Summits</span>
+          </div>
+          <div class="telemetry-card">
+            <span class="telemetry-value" style="color:#38bdf8;">2,500+</span>
+            <span class="telemetry-label">Passes Issued</span>
+          </div>
+          <div class="telemetry-card">
+            <span class="telemetry-value" style="color:#10b981;">100%</span>
+            <span class="telemetry-label">Shift Coverage</span>
+          </div>
+          <div class="telemetry-card">
+            <span class="telemetry-value" style="color:#c084fc;">&lt; 2s</span>
+            <span class="telemetry-label">Gate QR Scan</span>
+          </div>
+        </div>
+
+        <!-- Spotlight Gallery Cards -->
+        <div class="spotlight-wrapper">
+          <div class="spotlight-header">
+            <div>
+              <span style="font-size:0.68rem; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:#818cf8; background:rgba(99,102,241,0.12); padding:0.2rem 0.6rem; border-radius:999px; border:1px solid rgba(99,102,241,0.25);">
+                Spotlight Summits
+              </span>
+              <p style="font-size:0.8rem; color:var(--text-dim); margin-top:0.35rem;">Click any featured card for instant pass booking & speaker agendas</p>
+            </div>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">
+              <i class="fas fa-layer-group" style="color:#06b6d4;"></i> Curated Tracks
+            </span>
+          </div>
+
+          <div class="spotlight-grid">
+            <!-- Spotlight 1 -->
+            <div onclick="openEventDetailsModal('evt-101')" class="spotlight-card">
+              <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80" alt="Global AI & Cloud Summit" class="spotlight-img">
+              <div class="spotlight-overlay">
+                <div class="flex items-center justify-between">
+                  <span class="badge-tag" style="background:#8b5cf6; color:#ffffff;">Conference</span>
+                  <span class="badge-tag" style="background:rgba(0,0,0,0.7); color:#ffffff;">$199</span>
+                </div>
+                <div>
+                  <h3 style="font-size:0.95rem; color:#ffffff; font-weight:800;">Global AI & Cloud Summit</h3>
+                  <p style="font-size:0.72rem; color:#94a3b8; margin-top:0.2rem;"><i class="fas fa-map-marker-alt" style="color:#818cf8;"></i> Silicon Convention Center</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Spotlight 2 -->
+            <div onclick="openEventDetailsModal('evt-102')" class="spotlight-card">
+              <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=80" alt="Autonomous Hackathon" class="spotlight-img">
+              <div class="spotlight-overlay">
+                <div class="flex items-center justify-between">
+                  <span class="badge-tag" style="background:#0284c7; color:#ffffff;">Technical</span>
+                  <span class="badge-tag" style="background:#10b981; color:#ffffff;">FREE PASS</span>
+                </div>
+                <div>
+                  <h3 style="font-size:0.95rem; color:#ffffff; font-weight:800;">NextGen Autonomous Hackathon</h3>
+                  <p style="font-size:0.72rem; color:#94a3b8; margin-top:0.2rem;"><i class="fas fa-map-marker-alt" style="color:#818cf8;"></i> Cyber Arena Hall</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Spotlight 3 -->
+            <div onclick="openEventDetailsModal('evt-103')" class="spotlight-card">
+              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80" alt="Aurora Music Festival" class="spotlight-img">
+              <div class="spotlight-overlay">
+                <div class="flex items-center justify-between">
+                  <span class="badge-tag" style="background:#db2777; color:#ffffff;">Cultural</span>
+                  <span class="badge-tag" style="background:rgba(0,0,0,0.7); color:#ffffff;">$75</span>
+                </div>
+                <div>
+                  <h3 style="font-size:0.95rem; color:#ffffff; font-weight:800;">Aurora Symphony & Arts</h3>
+                  <p style="font-size:0.72rem; color:#94a3b8; margin-top:0.2rem;"><i class="fas fa-map-marker-alt" style="color:#818cf8;"></i> Grand Amphitheatre</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Spotlight 4 -->
+            <div onclick="openEventDetailsModal('evt-104')" class="spotlight-card">
+              <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80" alt="Apex Esports" class="spotlight-img">
+              <div class="spotlight-overlay">
+                <div class="flex items-center justify-between">
+                  <span class="badge-tag" style="background:#059669; color:#ffffff;">Sports</span>
+                  <span class="badge-tag" style="background:rgba(0,0,0,0.7); color:#ffffff;">$50</span>
+                </div>
+                <div>
+                  <h3 style="font-size:0.95rem; color:#ffffff; font-weight:800;">Apex Esports Championship</h3>
+                  <p style="font-size:0.72rem; color:#94a3b8; margin-top:0.2rem;"><i class="fas fa-map-marker-alt" style="color:#818cf8;"></i> Apex Coliseum</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Events Catalog Grid Section -->
+      <div class="catalog-section">
+        <div class="catalog-header">
+          <div>
+            <h2 style="font-size:1.85rem; font-weight:900; color:#ffffff;">Featured Events Portfolio</h2>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">
+              Instant digital pass reservation with cryptographic gate check-in
+            </p>
+          </div>
+          <span id="eventsCountBadge" class="badge-tag" style="background:rgba(255,255,255,0.06); color:#cbd5e1; border:1px solid rgba(255,255,255,0.12); padding:0.4rem 0.9rem; font-size:0.78rem;">
+            Loading events...
+          </span>
+        </div>
+
+        <div id="eventsGrid" class="events-grid-layout">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Industry Luminaries Keynote Speakers -->
+      <section class="speakers-section">
+        <div class="max-w-7xl">
+          <div class="text-center" style="max-width:650px; margin:0 auto 3rem;">
+            <span style="font-size:0.7rem; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:#818cf8; background:rgba(99,102,241,0.12); padding:0.25rem 0.75rem; border-radius:999px; border:1px solid rgba(99,102,241,0.25);">
+              Industry Luminaries
+            </span>
+            <h3 style="font-size:2rem; font-weight:900; margin-top:0.6rem; color:#ffffff;">Distinguished Keynote Speakers</h3>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.35rem;">
+              Principal engineers, founders, and research directors presenting at EventForce events
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Speaker 1 -->
+            <div class="speaker-card">
+              <div class="flex flex-col items-center">
+                <div class="speaker-avatar-ring">
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80" alt="Dr. Arthur Pendelton">
+                </div>
+                <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff;">Dr. Arthur Pendelton</h4>
+                <p style="font-size:0.75rem; color:#818cf8; font-weight:700; margin-top:0.2rem;">VP of AI Research</p>
+                <p style="font-size:0.72rem; color:var(--text-dim); margin-top:0.1rem;">Nexus Cognitive Labs</p>
+              </div>
+              <div style="margin-top:1.25rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.06); width:100%;">
+                <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3);">Autonomous Agents</span>
+              </div>
+            </div>
+
+            <!-- Speaker 2 -->
+            <div class="speaker-card">
+              <div class="flex flex-col items-center">
+                <div class="speaker-avatar-ring">
+                  <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=300&q=80" alt="Maya Lin">
+                </div>
+                <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff;">Maya Lin</h4>
+                <p style="font-size:0.75rem; color:#818cf8; font-weight:700; margin-top:0.2rem;">Chief Cloud Architect</p>
+                <p style="font-size:0.72rem; color:var(--text-dim); margin-top:0.1rem;">CloudSphere Global</p>
+              </div>
+              <div style="margin-top:1.25rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.06); width:100%;">
+                <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3);">Edge Computing</span>
+              </div>
+            </div>
+
+            <!-- Speaker 3 -->
+            <div class="speaker-card">
+              <div class="flex flex-col items-center">
+                <div class="speaker-avatar-ring">
+                  <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80" alt="Zachary Taylor">
+                </div>
+                <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff;">Zachary Taylor</h4>
+                <p style="font-size:0.75rem; color:#818cf8; font-weight:700; margin-top:0.2rem;">Head of Dev Ecosystem</p>
+                <p style="font-size:0.72rem; color:var(--text-dim); margin-top:0.1rem;">CodeFlow Systems</p>
+              </div>
+              <div style="margin-top:1.25rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.06); width:100%;">
+                <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3);">Open Innovation</span>
+              </div>
+            </div>
+
+            <!-- Speaker 4 -->
+            <div class="speaker-card">
+              <div class="flex flex-col items-center">
+                <div class="speaker-avatar-ring">
+                  <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80" alt="Sarah Jenkins">
+                </div>
+                <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff;">Sarah Jenkins</h4>
+                <p style="font-size:0.75rem; color:#818cf8; font-weight:700; margin-top:0.2rem;">Staff Infrastructure Eng</p>
+                <p style="font-size:0.72rem; color:var(--text-dim); margin-top:0.1rem;">ScaleMesh Networks</p>
+              </div>
+              <div style="margin-top:1.25rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.06); width:100%;">
+                <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3);">Microservices Mesh</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Global Enterprise Sponsors Ribbon -->
+      <section class="sponsors-ribbon">
+        <div class="max-w-7xl">
+          <p style="font-size:0.7rem; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); margin-bottom:1.5rem;">
+            Enterprise Infrastructure & Ecosystem Partners
+          </p>
+          <div class="flex items-center justify-center gap-3 flex-wrap">
+            <div class="sponsor-chip">
+              <i class="fab fa-google" style="color:#818cf8; font-size:1.05rem;"></i>
+              <span>Google Cloud</span>
+            </div>
+            <div class="sponsor-chip">
+              <i class="fab fa-salesforce" style="color:#38bdf8; font-size:1.05rem;"></i>
+              <span>Salesforce</span>
+            </div>
+            <div class="sponsor-chip">
+              <i class="fab fa-microsoft" style="color:#0ea5e9; font-size:1.05rem;"></i>
+              <span>Microsoft Azure</span>
+            </div>
+            <div class="sponsor-chip">
+              <i class="fab fa-aws" style="color:#f59e0b; font-size:1.05rem;"></i>
+              <span>Amazon Web Services</span>
+            </div>
+            <div class="sponsor-chip">
+              <i class="fab fa-github" style="color:#ffffff; font-size:1.05rem;"></i>
+              <span>GitHub Enterprise</span>
+            </div>
+            <div class="sponsor-chip">
+              <i class="fab fa-docker" style="color:#38bdf8; font-size:1.05rem;"></i>
+              <span>Docker Cloud</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- VIEW 2: MY TICKETS & DIGITAL PASSES                                -->
+    <!-- ================================================================== -->
+    <section id="viewMyTickets" class="hidden" style="padding:3.5rem 1.25rem;">
+      <div class="max-w-4xl">
+        <div class="flex items-center justify-between" style="padding-bottom:1.5rem; border-bottom:1px solid var(--border-subtle); margin-bottom:2rem;">
+          <div>
+            <h2 style="font-size:1.85rem; font-weight:900; color:#ffffff;">My Confirmed Passes</h2>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">
+              Cryptographic admission passes equipped with gate verification barcodes
+            </p>
+          </div>
+          <button onclick="switchTab('events')" class="ef-btn ef-btn-secondary ef-btn-sm">
+            <i class="fas fa-plus"></i> Book Another Summit
+          </button>
+        </div>
+
+        <div id="myTicketsList" class="flex flex-col gap-4">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- VIEW 3: WORKFORCE CREW PORTAL & GATE TERMINAL                      -->
+    <!-- ================================================================== -->
+    <section id="viewWorkforce" class="hidden" style="padding:3.5rem 1.25rem;">
+      <div class="max-w-7xl">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4" style="padding-bottom:1.5rem; border-bottom:1px solid var(--border-subtle); margin-bottom:2.5rem;">
+          <div>
+            <span class="badge-tag" style="background:rgba(245,158,11,0.15); color:#fde68a; border:1px solid rgba(245,158,11,0.3); margin-bottom:0.6rem;">
+              <i class="fas fa-id-badge mr-1"></i> Crew Operations & Duty Roster
+            </span>
+            <h2 style="font-size:2.2rem; font-weight:900; color:#ffffff;">Workforce Command Center</h2>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">
+              Real-time shift dispatch, operational duties, and gate admission scanner
+            </p>
+          </div>
+
+          <!-- Quick Stats Pills -->
+          <div class="flex items-center gap-3">
+            <div class="telemetry-card" style="padding:0.75rem 1.25rem; min-width:110px;">
+              <span class="telemetry-label" style="margin-top:0;">Total Shifts</span>
+              <span id="wfTotalTasks" class="telemetry-value" style="font-size:1.4rem;">0</span>
+            </div>
+            <div class="telemetry-card" style="padding:0.75rem 1.25rem; min-width:110px; border-color:rgba(245,158,11,0.3);">
+              <span class="telemetry-label" style="color:#f59e0b; margin-top:0;">In Progress</span>
+              <span id="wfActiveTasks" class="telemetry-value" style="font-size:1.4rem; color:#f59e0b;">0</span>
+            </div>
+            <div class="telemetry-card" style="padding:0.75rem 1.25rem; min-width:110px; border-color:rgba(16,185,129,0.3);">
+              <span class="telemetry-label" style="color:#10b981; margin-top:0;">Completed</span>
+              <span id="wfCompletedTasks" class="telemetry-value" style="font-size:1.4rem; color:#10b981;">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 Column Layout: Left Tasks, Right Check-in Scanner & Crew Roster -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Left Column (Tasks List) -->
+          <div class="lg:col-span-2 flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+              <h3 style="font-size:1.25rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.5rem;">
+                <i class="fas fa-tasks" style="color:#818cf8;"></i>
+                <span>Active Shift Tasks & Responsibilities</span>
+              </h3>
+              <span style="font-size:0.75rem; color:var(--text-dim);">Live status synchronization</span>
+            </div>
+
+            <div id="workforceTasksList" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <!-- Right Column (Entry Desk Scanner & Crew Directory) -->
+          <div class="flex flex-col gap-6">
+            
+            <!-- Real-Time Entry Scanner Terminal -->
+            <div class="scanner-terminal-card">
+              <div class="scanner-laser-line"></div>
+              <div class="flex items-center gap-3" style="margin-bottom:1.25rem;">
+                <div style="width:2.5rem; height:2.5rem; border-radius:0.75rem; background:linear-gradient(135deg,#06b6d4,#6366f1); display:flex; align-items:center; justify-content:center; color:#ffffff; box-shadow:0 0 16px rgba(6,182,212,0.4);">
+                  <i class="fas fa-qrcode"></i>
+                </div>
+                <div>
+                  <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff;">Gate Check-In Terminal</h4>
+                  <p style="font-size:0.72rem; color:#94a3b8;">Instant barcode / pass verification</p>
+                </div>
+              </div>
+
+              <form id="checkInForm" class="flex flex-col gap-3">
+                <div>
+                  <label class="form-label" style="color:#38bdf8;">Ticket ID or QR Code String</label>
+                  <input type="text" id="checkInTicketInput" 
+                         placeholder="e.g. EF-2026-T8941" 
+                         class="terminal-input"
+                         autocomplete="off">
+                </div>
+                <button type="submit" class="ef-btn ef-btn-cyan w-full">
+                  <i class="fas fa-check-double mr-1"></i> Verify & Check-In
+                </button>
+              </form>
+
+              <!-- Result Message Box -->
+              <div id="checkInResultBox" class="hidden" style="margin-top:1rem;"></div>
+            </div>
+
+            <!-- Active Crew Directory -->
+            <div class="glass-card" style="padding:1.5rem;">
+              <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff; margin-bottom:0.25rem; display:flex; align-items:center; gap:0.5rem;">
+                <i class="fas fa-users" style="color:#818cf8;"></i>
+                <span>Crew Staff Directory</span>
+              </h4>
+              <p style="font-size:0.75rem; color:var(--text-dim); margin-bottom:1.25rem;">Active on-ground operations squad</p>
+              
+              <div id="crewDirectoryList" class="flex flex-col gap-3">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- VIEW 4: ORGANIZER ADMIN CONSOLE                                    -->
+    <!-- ================================================================== -->
+    <section id="viewAdmin" class="hidden" style="padding:3.5rem 1.25rem;">
+      <div class="max-w-7xl">
+        
+        <!-- Admin Header -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4" style="padding-bottom:1.5rem; border-bottom:1px solid var(--border-subtle); margin-bottom:2.5rem;">
+          <div>
+            <span class="badge-tag" style="background:rgba(168,85,247,0.15); color:#d8b4fe; border:1px solid rgba(168,85,247,0.3); margin-bottom:0.6rem;">
+              <i class="fas fa-shield-alt mr-1"></i> Event Director Console
+            </span>
+            <h2 style="font-size:2.2rem; font-weight:900; color:#ffffff;">Organizer Analytics & Management</h2>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">
+              Executive control plane, summit publishing, crew dispatch, and audit export
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="api.downloadAttendeesCSV()" class="ef-btn ef-btn-secondary ef-btn-sm">
+              <i class="fas fa-file-download" style="color:#818cf8;"></i>
+              <span>Export CSV</span>
+            </button>
+            <button onclick="openModal('assignTaskModal')" class="ef-btn ef-btn-secondary ef-btn-sm">
+              <i class="fas fa-user-plus" style="color:#06b6d4;"></i>
+              <span>Assign Crew Shift</span>
+            </button>
+            <button onclick="openModal('createEventModal')" class="ef-btn ef-btn-primary ef-btn-sm">
+              <i class="fas fa-plus"></i>
+              <span>Publish New Summit</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 KPI Metrics Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" style="margin-bottom:2rem;">
+          <div class="admin-metric-card">
+            <div>
+              <span class="telemetry-label" style="margin-top:0;">Total Events</span>
+              <h3 id="admTotalEvents" class="telemetry-value" style="margin-top:0.35rem;">0</h3>
+            </div>
+            <div class="metric-icon-box" style="background:rgba(99,102,241,0.15); color:#818cf8;">
+              <i class="fas fa-calendar-check"></i>
+            </div>
+          </div>
+
+          <div class="admin-metric-card">
+            <div>
+              <span class="telemetry-label" style="margin-top:0;">Total Registrations</span>
+              <h3 id="admTotalRegs" class="telemetry-value" style="margin-top:0.35rem;">0</h3>
+            </div>
+            <div class="metric-icon-box" style="background:rgba(6,182,212,0.15); color:#38bdf8;">
+              <i class="fas fa-ticket-alt"></i>
+            </div>
+          </div>
+
+          <div class="admin-metric-card">
+            <div>
+              <span class="telemetry-label" style="margin-top:0;">Gate Check-Ins</span>
+              <h3 id="admCheckedIn" class="telemetry-value" style="margin-top:0.35rem; color:#10b981;">0 (0%)</h3>
+            </div>
+            <div class="metric-icon-box" style="background:rgba(16,185,129,0.15); color:#10b981;">
+              <i class="fas fa-user-check"></i>
+            </div>
+          </div>
+
+          <div class="admin-metric-card">
+            <div>
+              <span class="telemetry-label" style="margin-top:0;">Crew Specialists</span>
+              <h3 id="admTotalStaff" class="telemetry-value" style="margin-top:0.35rem; color:#c084fc;">0</h3>
+            </div>
+            <div class="metric-icon-box" style="background:rgba(168,85,247,0.15); color:#c084fc;">
+              <i class="fas fa-user-shield"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 Analytics Visualizations (Chart.js) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" style="margin-bottom:2rem;">
+          <div class="glass-card" style="padding:1.75rem;">
+            <h4 style="font-size:1.1rem; font-weight:800; color:#ffffff; margin-bottom:0.25rem;">Summit Category Distribution</h4>
+            <p style="font-size:0.75rem; color:var(--text-dim); margin-bottom:1.25rem;">Breakdown across Conferences, Technical, Cultural, and Esports</p>
+            <div style="height:260px; position:relative;">
+              <canvas id="chartCategories"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card" style="padding:1.75rem;">
+            <h4 style="font-size:1.1rem; font-weight:800; color:#ffffff; margin-bottom:0.25rem;">Crew Shift Execution Progression</h4>
+            <p style="font-size:0.75rem; color:var(--text-dim); margin-bottom:1.25rem;">Real-time task completion tracking across operations teams</p>
+            <div style="height:260px; position:relative;">
+              <canvas id="chartWorkforce"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event Portfolio Directory Table -->
+        <div class="data-table-container">
+          <div class="data-table-header">
+            <div>
+              <h4 style="font-size:1.15rem; font-weight:800; color:#ffffff;">Event Portfolio Directory</h4>
+              <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.15rem;">Live summits and venue schedules</p>
+            </div>
+            <button onclick="openModal('createEventModal')" class="ef-btn ef-btn-primary ef-btn-sm">
+              <i class="fas fa-plus"></i> New Event
+            </button>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table class="table-custom">
+              <thead>
+                <tr>
+                  <th>Event & Venue</th>
+                  <th>Category</th>
+                  <th>Date</th>
+                  <th>Occupancy</th>
+                  <th>Admission</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminEventsTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Attendee Audit & Check-In Verification Table -->
+        <div class="data-table-container">
+          <div class="data-table-header">
+            <div>
+              <h4 style="font-size:1.15rem; font-weight:800; color:#ffffff;">Attendee Ticket Audit & Gate Admission</h4>
+              <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.15rem;">Verified registrations with instant gate check-in status</p>
+            </div>
+            <button onclick="api.downloadAttendeesCSV()" class="ef-btn ef-btn-secondary ef-btn-sm">
+              <i class="fas fa-download mr-1"></i> Download CSV
+            </button>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table class="table-custom">
+              <thead>
+                <tr>
+                  <th>Ticket ID</th>
+                  <th>Attendee Name & Contact</th>
+                  <th>Event</th>
+                  <th>Status</th>
+                  <th>Registered</th>
+                  <th style="text-align:right;">Gate Action</th>
+                </tr>
+              </thead>
+              <tbody id="adminAttendeesTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL DIALOGS                                                        -->
+  <!-- ==================================================================== -->
+
+  <!-- 1. Event Details Modal -->
+  <div id="eventDetailsModal" class="modal-overlay hidden">
+    <div class="modal-content-glass max-w-3xl" id="eventDetailsContent">
+      <!-- Injected via JS -->
+    </div>
+  </div>
+
+  <!-- 2. Admission Pass Booking Modal -->
+  <div id="bookingModal" class="modal-overlay hidden">
+    <div class="modal-content-glass max-w-lg" style="padding:2rem;">
+      <div class="flex items-center justify-between" style="padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <h3 style="font-size:1.25rem; font-weight:800; color:#ffffff;">Reserve Admission Pass</h3>
+        <button onclick="closeModal('bookingModal')" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:1.1rem;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div style="margin:1.25rem 0; padding:1rem; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.25); border-radius:1rem;">
+        <p style="font-size:1rem; font-weight:800; color:#ffffff;" id="bookingEventTitle"></p>
+        <p style="font-size:0.8rem; color:#818cf8; margin-top:0.2rem;" id="bookingEventDate"></p>
+        <p style="font-size:0.75rem; color:var(--text-muted);" id="bookingEventVenue"></p>
+        <p style="font-size:1.15rem; font-weight:900; color:#10b981; margin-top:0.5rem;" id="bookingEventPrice"></p>
+      </div>
+
+      <form id="bookingForm" class="flex flex-col gap-3">
+        <input type="hidden" id="bookingEventId">
+        
+        <div class="form-group">
+          <label class="form-label">Attendee Full Name</label>
+          <input type="text" id="bookAttendeeName" required placeholder="e.g. Sree" class="form-control">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="bookAttendeeEmail" required placeholder="attendee@eventforce.com" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" id="bookAttendeePhone" placeholder="+91 98765 43210" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Organization / University</label>
+          <input type="text" id="bookAttendeeCollege" placeholder="e.g. Chettinad College of Engineering & Technology" class="form-control">
+        </div>
+
+        <div class="flex items-center justify-end gap-2" style="margin-top:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.08);">
+          <button type="button" onclick="closeModal('bookingModal')" class="ef-btn ef-btn-secondary">
+            Cancel
+          </button>
+          <button type="submit" class="ef-btn ef-btn-primary">
+            Confirm & Issue Pass
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Ticket Pass Hologram Modal (with QR Code) -->
+  <div id="ticketModal" class="modal-overlay hidden">
+    <div class="modal-content-glass max-w-xl" style="padding:1.75rem; position:relative;">
+      <button onclick="closeModal('ticketModal')" style="position:absolute; top:1.25rem; right:1.25rem; background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:1.15rem; z-index:10;">
+        <i class="fas fa-times"></i>
+      </button>
+      <div id="ticketPassContainer">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Assign Crew Task Modal -->
+  <div id="assignTaskModal" class="modal-overlay hidden">
+    <div class="modal-content-glass max-w-lg" style="padding:2rem;">
+      <div class="flex items-center justify-between" style="padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <h3 style="font-size:1.25rem; font-weight:800; color:#ffffff;">Assign Crew Duty Shift</h3>
+        <button onclick="closeModal('assignTaskModal')" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:1.1rem;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form id="assignTaskForm" class="flex flex-col gap-3" style="margin-top:1.25rem;">
+        <div class="form-group">
+          <label class="form-label">Target Event</label>
+          <select id="assignEventSelect" required class="form-control"></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Crew Staff Member</label>
+          <select id="assignStaffSelect" required class="form-control"></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Shift / Duty Title</label>
+          <input type="text" id="assignTaskTitle" required placeholder="e.g. Stage AV & Projector Operations" class="form-control">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label class="form-label">Role / Department</label>
+            <input type="text" id="assignTaskRole" placeholder="Tech Lead / Logistics" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Priority</label>
+            <select id="assignPriority" class="form-control">
+              <option value="High">High</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label class="form-label">Shift Start</label>
+            <input type="text" id="assignShiftStart" placeholder="08:00 AM" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shift End</label>
+            <input type="text" id="assignShiftEnd" placeholder="02:00 PM" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Operational Instructions</label>
+          <textarea id="assignDescription" rows="2" placeholder="Specific duty responsibilities and reporting location..." class="form-control"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2" style="margin-top:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.08);">
+          <button type="button" onclick="closeModal('assignTaskModal')" class="ef-btn ef-btn-secondary">Cancel</button>
+          <button type="submit" class="ef-btn ef-btn-primary">Assign Shift</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. Create Event Modal -->
+  <div id="createEventModal" class="modal-overlay hidden">
+    <div class="modal-content-glass max-w-xl" style="padding:2rem;">
+      <div class="flex items-center justify-between" style="padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <h3 style="font-size:1.25rem; font-weight:800; color:#ffffff;">Publish New Event</h3>
+        <button onclick="closeModal('createEventModal')" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:1.1rem;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form id="createEventForm" class="flex flex-col gap-3" style="margin-top:1.25rem;">
+        <div class="form-group">
+          <label class="form-label">Event Title</label>
+          <input type="text" id="createEventTitle" required placeholder="e.g. AI & Robotics Hackathon 2026" class="form-control">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select id="createEventCategory" class="form-control">
+              <option value="Conference">Conference</option>
+              <option value="Technical">Technical</option>
+              <option value="Cultural">Cultural</option>
+              <option value="Sports">Sports</option>
+              <option value="Workshop">Workshop</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" id="createEventDate" required class="form-control">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label class="form-label">Time Schedule</label>
+            <input type="text" id="createEventTime" placeholder="10:00 AM - 05:00 PM" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total Capacity</label>
+            <input type="number" id="createEventCapacity" value="250" class="form-control">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label class="form-label">Ticket Fee ($0 for Free)</label>
+            <input type="number" id="createEventPrice" value="0" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Venue / Auditorium</label>
+            <input type="text" id="createEventVenue" required placeholder="Convention Hall A, Silicon Valley" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Cover Image URL (HD Photo)</label>
+          <input type="url" id="createEventBanner" placeholder="https://images.unsplash.com/..." class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Event Description & Schedule</label>
+          <textarea id="createEventDescription" rows="3" placeholder="Provide full conference agenda, track details..." class="form-control"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2" style="margin-top:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.08);">
+          <button type="button" onclick="closeModal('createEventModal')" class="ef-btn ef-btn-secondary">Cancel</button>
+          <button type="submit" class="ef-btn ef-btn-primary">Publish Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 6. Login Modal -->
+  <div id="loginModal" class="modal-overlay hidden">
+    <div class="modal-content-glass max-w-sm" style="padding:2rem;">
+      <div class="flex items-center justify-between" style="padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <h3 style="font-size:1.2rem; font-weight:800; color:#ffffff;">Sign In to EventForce</h3>
+        <button onclick="closeModal('loginModal')" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:1.1rem;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form id="loginForm" class="flex flex-col gap-3" style="margin-top:1.25rem;">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="loginEmail" required class="form-control" placeholder="user@eventforce.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="loginPassword" required class="form-control" placeholder="••••••••">
+        </div>
+
+        <div style="margin-top:0.5rem;">
+          <button type="submit" class="ef-btn ef-btn-primary w-full">
+            Sign In
+          </button>
+        </div>
+
+        <div style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.08); text-align:center;">
+          <p style="font-size:0.78rem; color:var(--text-muted);">
+            Need an account? <a href="javascript:void(0)" onclick="closeModal('loginModal'); openRegisterModal();" style="color:#818cf8; font-weight:700;">Register here</a>
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. Register Modal -->
+  <div id="registerModal" class="modal-overlay hidden">
+    <div class="modal-content-glass max-w-sm" style="padding:2rem;">
+      <div class="flex items-center justify-between" style="padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <h3 style="font-size:1.2rem; font-weight:800; color:#ffffff;">Create Account</h3>
+        <button onclick="closeModal('registerModal')" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:1.1rem;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form id="registerForm" class="flex flex-col gap-3" style="margin-top:1.25rem;">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" id="regName" required class="form-control" placeholder="Sree">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="regEmail" required class="form-control" placeholder="attendee@eventforce.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="regPassword" required class="form-control" placeholder="••••••••">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <select id="regRole" class="form-control">
+            <option value="attendee">Attendee / Delegate</option>
+            <option value="staff">Event Crew / Staff</option>
+            <option value="admin">Event Organizer / Admin</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input type="tel" id="regPhone" class="form-control" placeholder="+91 98765 43210">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Department / College</label>
+          <input type="text" id="regDept" placeholder="e.g. Technology & Engineering" class="form-control">
+        </div>
+
+        <div style="margin-top:0.5rem;">
+          <button type="submit" class="ef-btn ef-btn-primary w-full">
+            Register Account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" style="position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; display:flex; flex-direction:column; gap:0.5rem; pointer-events:none;"></div>
+
+  <!-- ==================================================================== -->
+  <!-- FOOTER                                                               -->
+  <!-- ==================================================================== -->
+  <footer style="background:#090e1a; border-top:1px solid var(--border-subtle); padding:2.5rem 1.25rem; margin-top:3rem;">
+    <div class="max-w-7xl flex flex-col md:flex-row items-center justify-between gap-4" style="font-size:0.8rem; color:var(--text-dim);">
+      <div class="flex items-center gap-2">
+        <span style="font-weight:900; color:#ffffff; font-size:1.05rem;">EventForce</span>
+        <span>•</span>
+        <span>Intelligent Operations & Dynamic Crew Dispatch</span>
+      </div>
+      <div>
+        <span>Vanilla CSS & Design System Architecture • Cryptographic QR Verification</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

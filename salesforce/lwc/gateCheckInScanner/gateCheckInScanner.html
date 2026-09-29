@@ -1,0 +1,52 @@
+<template>
+    <lightning-card title="EventForce — Gate Entry Verification Console" icon-name="standard:scan_card">
+        <div class="slds-p-around_medium">
+            <p class="slds-text-body_small slds-m-bottom_small">
+                Enter ticket code (e.g. <code>EF-2026-T8941</code>) or scan attendee QR string to verify admission.
+            </p>
+
+            <div class="slds-grid slds-gutters slds-grid_vertical-align-end slds-m-bottom_medium">
+                <div class="slds-col slds-size_3-of-4">
+                    <lightning-input 
+                        type="text" 
+                        label="Ticket Code / QR Data" 
+                        value={ticketInput} 
+                        placeholder="EF-2026-TXXXX"
+                        onchange={handleInputChange}>
+                    </lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-4">
+                    <lightning-button 
+                        variant="brand" 
+                        label="Verify & Check-In" 
+                        icon-name="utility:check"
+                        onclick={handleVerifyCheckIn}>
+                    </lightning-button>
+                </div>
+            </div>
+
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Verifying Admission" size="small"></lightning-spinner>
+            </template>
+
+            <!-- Verification Status Banner -->
+            <template if:true={checkInResult}>
+                <div class={bannerClass}>
+                    <div class="slds-media slds-media_center">
+                        <div class="slds-media__figure">
+                            <lightning-icon icon-name={iconName} size="small" variant="inverse"></lightning-icon>
+                        </div>
+                        <div class="slds-media__body">
+                            <h4 class="slds-text-heading_small font-bold">{checkInResult.message}</h4>
+                            <template if:true={checkInResult.attendeeName}>
+                                <p class="slds-m-top_xx-small">
+                                    Attendee: <strong>{checkInResult.attendeeName}</strong> | Event: <strong>{checkInResult.eventTitle}</strong>
+                                </p>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

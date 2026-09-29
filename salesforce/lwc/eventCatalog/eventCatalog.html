@@ -1,0 +1,68 @@
+<template>
+    <lightning-card title="EventForce — Upcoming Events Portfolio" icon-name="standard:event">
+        <div class="slds-p-around_medium">
+            <!-- Search & Filter Bar -->
+            <div class="slds-grid slds-gutters slds-m-bottom_medium">
+                <div class="slds-col slds-size_2-of-3">
+                    <lightning-input 
+                        type="search" 
+                        label="Search Events" 
+                        variant="label-hidden" 
+                        placeholder="Search by title, topic, or venue..." 
+                        onchange={handleSearchChange}>
+                    </lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-3">
+                    <lightning-combobox
+                        name="category"
+                        label="Category"
+                        variant="label-hidden"
+                        value={selectedCategory}
+                        options={categoryOptions}
+                        onchange={handleCategoryChange}>
+                    </lightning-combobox>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading Events" size="medium"></lightning-spinner>
+            </template>
+
+            <!-- Events Grid -->
+            <div class="slds-grid slds-wrap slds-gutters">
+                <template for:each={events} for:item="evt">
+                    <div key={evt.Id} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                        <div class="slds-box slds-box_link slds-theme_default slds-card slds-has-bottom-magnet">
+                            <div class="slds-media slds-m-bottom_small">
+                                <div class="slds-media__body">
+                                    <span class="slds-badge slds-theme_success">{evt.Category__c}</span>
+                                    <h3 class="slds-text-heading_small slds-m-top_xx-small slds-truncate font-bold">
+                                        {evt.Title__c}
+                                    </h3>
+                                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                                        📅 {evt.Event_Date__c} • ⏰ {evt.Event_Time__c}
+                                    </p>
+                                    <p class="slds-text-body_small slds-truncate slds-m-top_xx-small">
+                                        📍 {evt.Venue__c}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="slds-border_top slds-p-top_x-small slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                <span class="slds-text-title_bold slds-text-color_success">
+                                    Fee: ${evt.Ticket_Price__c}
+                                </span>
+                                <lightning-button 
+                                    label="Reserve Ticket" 
+                                    variant="brand" 
+                                    data-id={evt.Id} 
+                                    onclick={handleOpenBookingModal}>
+                                </lightning-button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </lightning-card>
+</template>
