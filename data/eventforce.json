@@ -1,19 +1,6 @@
 {
   "events": [
     {
-      "id": "EVT-1001",
-      "name": "Arun & Meera Grand Wedding",
-      "date": "2026-10-15",
-      "type": "Wedding",
-      "status": "Confirmed",
-      "budget": 50000,
-      "clientId": "CLI-1001",
-      "venueId": "VNU-1001",
-      "description": "Traditional royal wedding reception with 500 guests and premium catering.",
-      "createdAt": "2026-09-10",
-      "owner": "Sizzler Jaligam"
-    },
-    {
       "id": "EVT-1002",
       "name": "Microsoft Product Launch",
       "date": "2026-10-22",
@@ -274,7 +261,7 @@
       "address": "63 Mount Road, Guindy",
       "location": "https://maps.google.com/?q=ITC+Grand+Chola",
       "capacity": 800,
-      "availabilityStatus": "Reserved"
+      "availabilityStatus": "Available"
     },
     {
       "id": "VNU-1002",
@@ -318,20 +305,6 @@
     }
   ],
   "eventVendors": [
-    {
-      "id": "EV-1001",
-      "eventId": "EVT-1001",
-      "vendorId": "VEN-1001",
-      "serviceType": "Catering",
-      "notes": "Full 5-course gourmet banquet menu for 500 attendees."
-    },
-    {
-      "id": "EV-1002",
-      "eventId": "EVT-1001",
-      "vendorId": "VEN-1002",
-      "serviceType": "Decor",
-      "notes": "Floral entrance archway and royal mandap setup."
-    },
     {
       "id": "EV-1003",
       "eventId": "EVT-1002",
@@ -377,14 +350,6 @@
       "rating": 5,
       "comments": "Exceptional venue facilities and coordinator responsiveness. Our speakers were very happy.",
       "date": "2026-08-30"
-    },
-    {
-      "id": "F-0003",
-      "clientId": "CLI-1001",
-      "eventId": "EVT-1001",
-      "rating": 5,
-      "comments": "The wedding planning team was so attentive. Every vendor arrived on schedule. Thank you EventForce!",
-      "date": "2026-09-12"
     },
     {
       "id": "F-0004",
