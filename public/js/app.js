@@ -1,1394 +1,1516 @@
-// EventForce Application Core Controller
-let currentUser = null;
-let currentTab = 'events';
-let activeCategory = 'All';
-let eventsList = [];
-let categoryChartInstance = null;
-let workforceChartInstance = null;
+/**
+ * EventForce Management System - Core Frontend Controller
+ * Follows Naan Mudhalvan Salesforce Architecture mapped to Web Standards
+ */
 
-// Initialization
-document.addEventListener('DOMContentLoaded', async () => {
-  initUserSession();
-  setupEventListeners();
-  await loadEvents();
-});
+const DEFAULT_BUDGETS = {
+  Wedding: 50000,
+  Corporate: 30000,
+  Birthday: 10000,
+  Anniversary: 20000,
+  Festival: 60000,
+  Concert: 40000,
+  Other: 15000
+};
 
-// User Session Management
-function initUserSession() {
-  currentUser = api.getUser();
-  updateAuthUI();
-}
-
-function updateAuthUI() {
-  const userSection = document.getElementById('userSection');
-  const navWorkforce = document.getElementById('navWorkforce');
-  const navAdmin = document.getElementById('navAdmin');
-  const navMyTickets = document.getElementById('navMyTickets');
-
-  if (currentUser) {
-    const roleBadges = {
-      'admin': { label: '👑 Director', bg: 'rgba(168, 85, 247, 0.2)', color: '#d8b4fe', border: 'rgba(168, 85, 247, 0.4)' },
-      'staff': { label: '👷 Crew Staff', bg: 'rgba(245, 158, 11, 0.2)', color: '#fde68a', border: 'rgba(245, 158, 11, 0.4)' },
-      'attendee': { label: '🎓 Attendee', bg: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', border: 'rgba(16, 185, 129, 0.4)' }
+class EventForceApp {
+  constructor() {
+    this.currentTab = 'dashboard';
+    this.currentRole = 'Event Admin';
+    this.currentReport = 'upcoming-month';
+    this.db = {
+      events: [],
+      clients: [],
+      vendors: [],
+      venues: [],
+      eventVendors: [],
+      feedback: [],
+      users: [],
+      cancellationRequests: [],
+      notificationLogs: []
     };
-    const b = roleBadges[currentUser.role] || roleBadges.attendee;
 
-    userSection.innerHTML = `
-      <div class="flex items-center gap-3">
-        <div class="text-right" style="display:none; @media(min-width:640px){display:block;}">
-          <p style="font-size:0.85rem; font-weight:800; color:#ffffff; line-height:1.2;">${currentUser.name}</p>
-          <span style="display:inline-block; font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; padding:0.1rem 0.45rem; border-radius:0.35rem; background:${b.bg}; color:${b.color}; border:1px solid ${b.border}; margin-top:2px;">
-            ${b.label}
-          </span>
-        </div>
-        <img src="${currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'}" 
-             style="width:2.5rem; height:2.5rem; border-radius:50%; border:2px solid #6366f1; object-fit:cover; box-shadow:0 0 12px rgba(99,102,241,0.4);" 
-             alt="Avatar"
-             onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';">
-        <button onclick="handleLogout()" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:1.05rem; padding:0.4rem; transition:color 0.2s;" onmouseover="this.style.color='#f43f5e'" onmouseout="this.style.color='var(--text-dim)'" title="Sign Out">
-          <i class="fas fa-sign-out-alt"></i>
-        </button>
-      </div>
-    `;
+    this.charts = {
+      month: null,
+      type: null,
+      status: null
+    };
 
-    // Role-dependent navigation visibility
-    if (navWorkforce) navWorkforce.classList.remove('hidden');
-    if (navAdmin) {
-      if (currentUser.role === 'admin') {
-        navAdmin.classList.remove('hidden');
-      } else {
-        navAdmin.classList.add('hidden');
-      }
-    }
-    if (navMyTickets) navMyTickets.classList.remove('hidden');
-  } else {
-    userSection.innerHTML = `
-      <div class="flex items-center gap-2">
-        <button onclick="openLoginModal()" class="ef-btn ef-btn-secondary ef-btn-sm">
-          Sign In
-        </button>
-        <button onclick="openRegisterModal()" class="ef-btn ef-btn-primary ef-btn-sm">
-          Register
-        </button>
-      </div>
-    `;
-    if (navWorkforce) navWorkforce.classList.remove('hidden');
-    if (navAdmin) navAdmin.classList.remove('hidden');
-    if (navMyTickets) navMyTickets.classList.remove('hidden');
-  }
-}
-
-// Quick Demo Login Switcher
-async function quickSwitchDemo(role) {
-  try {
-    let email = 'admin@eventforce.com';
-    let password = 'admin123';
-
-    if (role === 'staff') {
-      email = 'staff1@eventforce.com';
-      password = 'staff123';
-    } else if (role === 'attendee') {
-      email = 'attendee@eventforce.com';
-      password = 'user123';
-    }
-
-    showToast(`Switching to ${role.toUpperCase()} persona...`, 'info');
-    const res = await api.login(email, password);
-    currentUser = res.user;
-    updateAuthUI();
-    showToast(`Active as ${res.user.name} (${role})`, 'success');
-
-    if (role === 'admin') {
-      switchTab('admin');
-    } else if (role === 'staff') {
-      switchTab('workforce');
-    } else {
-      switchTab('events');
-    }
-  } catch (err) {
-    showToast('Failed to switch demo account: ' + err.message, 'error');
-  }
-}
-
-function handleLogout() {
-  api.clearSession();
-  currentUser = null;
-  updateAuthUI();
-  showToast('Logged out successfully', 'info');
-  switchTab('events');
-}
-
-// Navigation Tab Switcher
-function switchTab(tab) {
-  currentTab = tab;
-
-  ['navEvents', 'navMyTickets', 'navWorkforce', 'navAdmin'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.classList.remove('active', 'text-indigo-600', 'font-bold', 'border-b-2', 'border-indigo-600');
-    }
-  });
-
-  const activeNav = document.getElementById({
-    'events': 'navEvents',
-    'my-tickets': 'navMyTickets',
-    'workforce': 'navWorkforce',
-    'admin': 'navAdmin'
-  }[tab]);
-
-  if (activeNav) {
-    activeNav.classList.add('active', 'text-indigo-600');
+    this.init();
   }
 
-  // Switch content containers
-  ['viewEvents', 'viewMyTickets', 'viewWorkforce', 'viewAdmin'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
-  });
-
-  const activeView = document.getElementById({
-    'events': 'viewEvents',
-    'my-tickets': 'viewMyTickets',
-    'workforce': 'viewWorkforce',
-    'admin': 'viewAdmin'
-  }[tab]);
-
-  if (activeView) activeView.classList.remove('hidden');
-
-  // Trigger data loaders for specific tabs
-  if (tab === 'events') {
-    loadEvents();
-  } else if (tab === 'my-tickets') {
-    loadMyTickets();
-  } else if (tab === 'workforce') {
-    loadWorkforcePortal();
-  } else if (tab === 'admin') {
-    loadAdminDashboard();
+  async init() {
+    this.bindEvents();
+    await this.fetchData();
+    this.renderAll();
   }
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// Load and Render Events
-async function loadEvents() {
-  try {
-    const searchInput = document.getElementById('eventSearchInput');
-    const query = searchInput ? searchInput.value.trim() : '';
-
-    const res = await api.getEvents({
-      category: activeCategory,
-      search: query
+  bindEvents() {
+    // Nav tabs
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tab = e.currentTarget.getAttribute('data-tab');
+        this.switchTab(tab);
+      });
     });
 
-    eventsList = res.events || [];
-    renderEventsGrid(eventsList);
-  } catch (err) {
-    showToast('Failed to load events: ' + err.message, 'error');
-  }
-}
-
-function filterCategory(cat) {
-  activeCategory = cat;
-  document.querySelectorAll('.cat-pill').forEach(btn => {
-    if (btn.dataset.category === cat) {
-      btn.className = 'cat-pill active';
-    } else {
-      btn.className = 'cat-pill';
-    }
-  });
-  loadEvents();
-}
-
-function renderEventsGrid(events) {
-  const grid = document.getElementById('eventsGrid');
-  const countEl = document.getElementById('eventsCountBadge');
-  if (countEl) countEl.innerText = `${events.length} Summits Available`;
-
-  if (!events || events.length === 0) {
-    grid.innerHTML = `
-      <div style="grid-column: 1 / -1; padding: 4rem 1.5rem; text-align: center;" class="glass-card">
-        <div style="width: 4rem; height: 4rem; border-radius: 50%; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: #64748b;">
-          <i class="fas fa-calendar-times"></i>
-        </div>
-        <h3 style="font-size: 1.25rem; font-weight: 800; color: #ffffff;">No Summits Found</h3>
-        <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 0.25rem;">Try selecting another category or clear your search term.</p>
-      </div>
-    `;
-    return;
-  }
-
-  const categoryStyles = {
-    'Technical': { bg: 'rgba(2, 132, 199, 0.2)', color: '#38bdf8', border: 'rgba(2, 132, 199, 0.4)' },
-    'Conference': { bg: 'rgba(139, 92, 246, 0.2)', color: '#c084fc', border: 'rgba(139, 92, 246, 0.4)' },
-    'Cultural': { bg: 'rgba(219, 39, 119, 0.2)', color: '#f472b6', border: 'rgba(219, 39, 119, 0.4)' },
-    'Sports': { bg: 'rgba(5, 150, 105, 0.2)', color: '#34d399', border: 'rgba(5, 150, 105, 0.4)' },
-    'Workshop': { bg: 'rgba(217, 119, 6, 0.2)', color: '#fbbf24', border: 'rgba(217, 119, 6, 0.4)' }
-  };
-
-  grid.innerHTML = events.map(evt => {
-    const occupancy = Math.round((evt.registeredCount / evt.capacity) * 100);
-    const isFull = evt.registeredCount >= evt.capacity;
-    const isFree = evt.ticketPrice === 0;
-    const catStyle = categoryStyles[evt.category] || categoryStyles.Conference;
-
-    return `
-      <article class="event-card">
-        <div>
-          <!-- Banner Container -->
-          <div class="event-card-media" onclick="openEventDetailsModal('${evt.id}')">
-            <img src="${evt.bannerUrl}" alt="${evt.title}" 
-                 class="event-card-img"
-                 onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80';">
-            <div class="event-card-media-gradient"></div>
-            <span class="event-badge-cat" style="background:${catStyle.bg}; color:${catStyle.color}; border-color:${catStyle.border};">
-              ${evt.category}
-            </span>
-            <span class="event-badge-price" style="background:${isFree ? '#059669' : '#0f172a'}; color:#ffffff; border:1px solid ${isFree ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.2)'};">
-              ${isFree ? 'FREE PASS' : `$${evt.ticketPrice}`}
-            </span>
-          </div>
-
-          <!-- Body Content -->
-          <div class="event-card-body">
-            <div class="event-date-row">
-              <i class="far fa-calendar-alt"></i>
-              <span>${new Date(evt.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              <span style="color:var(--border-card);">•</span>
-              <i class="far fa-clock"></i>
-              <span>${evt.time}</span>
-            </div>
-
-            <h3 class="event-title-clamp" onclick="openEventDetailsModal('${evt.id}')" title="${evt.title}">
-              ${evt.title}
-            </h3>
-
-            <p class="event-venue-row">
-              <i class="fas fa-map-marker-alt" style="color:#818cf8; flex-shrink:0;"></i>
-              <span class="truncate">${evt.venue}</span>
-            </p>
-
-            <p class="event-desc-clamp">
-              ${evt.description}
-            </p>
-
-            <!-- Occupancy bar -->
-            <div class="occupancy-wrapper">
-              <div class="occupancy-labels">
-                <span>Registrations: <strong style="color:#ffffff;">${evt.registeredCount}</strong> / ${evt.capacity}</span>
-                <span style="color:${isFull ? '#f43f5e' : occupancy > 80 ? '#fbbf24' : '#94a3b8'};">
-                  ${isFull ? 'Sold Out' : `${evt.capacity - evt.registeredCount} seats left`}
-                </span>
-              </div>
-              <div class="occupancy-bar">
-                <div class="occupancy-fill ${isFull ? 'danger' : occupancy > 80 ? 'warning' : ''}" 
-                     style="width: ${Math.min(100, occupancy)}%"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Footer Actions -->
-        <div class="event-card-footer">
-          <button onclick="openEventDetailsModal('${evt.id}')" class="ef-btn ef-btn-secondary ef-btn-sm">
-            <i class="fas fa-info-circle" style="color:#94a3b8;"></i>
-            <span>Details</span>
-          </button>
-          <button onclick="openBookingModal('${evt.id}')" 
-                  ${isFull ? 'disabled' : ''}
-                  class="ef-btn ${isFull ? 'ef-btn-secondary' : 'ef-btn-primary'} ef-btn-sm" 
-                  style="${isFull ? 'opacity:0.5; cursor:not-allowed;' : ''}">
-            <i class="fas fa-ticket-alt"></i>
-            <span>${isFull ? 'Full' : 'Book Pass'}</span>
-          </button>
-        </div>
-      </article>
-    `;
-  }).join('');
-}
-
-// Event Details Modal
-async function openEventDetailsModal(eventId) {
-  try {
-    const res = await api.getEvent(eventId);
-    const evt = res.event;
-    const tasks = res.workforceTasks || [];
-    const speakers = evt.speakers || [];
-    const sponsors = evt.sponsors || [];
-    const agenda = evt.agenda || [];
-    const feedbacks = evt.feedbacks || [];
-
-    const modalContent = document.getElementById('eventDetailsContent');
-    modalContent.innerHTML = `
-      <div style="position:relative; height:18rem; overflow:hidden;">
-        <img src="${evt.bannerUrl}" style="width:100%; height:100%; object-fit:cover;" alt="${evt.title}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80';">
-        <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(7,10,18,0.2) 0%, rgba(7,10,18,0.7) 50%, rgba(13,19,34,1) 100%);"></div>
-        <button onclick="closeModal('eventDetailsModal')" style="position:absolute; top:1.25rem; right:1.25rem; width:2.25rem; height:2.25rem; border-radius:50%; background:rgba(0,0,0,0.6); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.2); color:#ffffff; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-          <i class="fas fa-times"></i>
-        </button>
-        <div style="position:absolute; bottom:1.5rem; left:1.75rem; right:1.75rem; color:#ffffff;">
-          <span class="badge-tag" style="background:#6366f1; color:#ffffff; margin-bottom:0.6rem;">
-            ${evt.category}
-          </span>
-          <h2 style="font-size:1.85rem; font-weight:900; line-height:1.2;">${evt.title}</h2>
-          <p style="font-size:0.85rem; color:#cbd5e1; margin-top:0.35rem; display:flex; align-items:center; gap:0.5rem;">
-            <span>Organized by <strong style="color:#ffffff;">${evt.organizerName}</strong></span>
-            <span>•</span>
-            <span>${evt.venue}</span>
-          </p>
-        </div>
-      </div>
-
-      <div style="padding:1.75rem; display:flex; flex-direction:column; gap:1.75rem;">
-        <!-- Date, Venue & Pricing Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div style="padding:1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:1rem;">
-            <span class="telemetry-label" style="margin-top:0;">DATE & TIME</span>
-            <p style="font-size:0.95rem; font-weight:800; color:#ffffff; margin-top:0.35rem;">${new Date(evt.date).toDateString()}</p>
-            <p style="font-size:0.8rem; color:#818cf8; font-weight:600;">${evt.time}</p>
-          </div>
-          <div style="padding:1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:1rem;">
-            <span class="telemetry-label" style="margin-top:0;">VENUE LOCATION</span>
-            <p style="font-size:0.92rem; font-weight:800; color:#ffffff; margin-top:0.35rem;">${evt.venue}</p>
-          </div>
-          <div style="padding:1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:1rem;">
-            <span class="telemetry-label" style="margin-top:0;">ADMISSION TICKET</span>
-            <p style="font-size:1.1rem; font-weight:900; color:${evt.ticketPrice === 0 ? '#10b981' : '#ffffff'}; margin-top:0.35rem;">
-              ${evt.ticketPrice === 0 ? 'FREE ENTRY' : `$${evt.ticketPrice} / pass`}
-            </p>
-            <p style="font-size:0.75rem; color:var(--text-muted);">${evt.seatsLeft} of ${evt.capacity} seats remaining</p>
-          </div>
-        </div>
-
-        <!-- Overview -->
-        <div>
-          <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.5rem;">
-            <i class="fas fa-align-left" style="color:#818cf8;"></i> Summit Overview
-          </h4>
-          <p style="font-size:0.9rem; color:#94a3b8; line-height:1.65;">${evt.description}</p>
-        </div>
-
-        <!-- Featured Keynote Speakers -->
-        ${speakers.length > 0 ? `
-          <div style="padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08);">
-            <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff; margin-bottom:0.85rem; display:flex; align-items:center; gap:0.5rem;">
-              <i class="fas fa-microphone-alt" style="color:#818cf8;"></i> Featured Keynote Speakers
-            </h4>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              ${speakers.map(spk => `
-                <div style="padding:0.85rem 1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:1rem; display:flex; align-items:center; gap:0.85rem;">
-                  <img src="${spk.avatar}" style="width:3.2rem; height:3.2rem; border-radius:50%; object-fit:cover; border:2px solid #818cf8; flex-shrink:0;" alt="${spk.name}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';">
-                  <div style="min-width:0;">
-                    <p style="font-size:0.9rem; font-weight:800; color:#ffffff;" class="truncate">${spk.name}</p>
-                    <p style="font-size:0.75rem; color:#818cf8; font-weight:600;" class="truncate">${spk.role} • ${spk.company}</p>
-                    <p style="font-size:0.72rem; color:var(--text-dim); margin-top:0.2rem; font-style:italic;" class="truncate">"${spk.topic}"</p>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        <!-- Multi-Track Agenda / Schedule -->
-        ${agenda.length > 0 ? `
-          <div style="padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08);">
-            <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff; margin-bottom:0.85rem; display:flex; align-items:center; gap:0.5rem;">
-              <i class="far fa-calendar-check" style="color:#818cf8;"></i> Session Schedule & Tracks
-            </h4>
-            <div style="display:flex; flex-direction:column; gap:0.6rem;">
-              ${agenda.map(ag => `
-                <div style="padding:0.75rem 1rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07); border-radius:0.85rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
-                  <div style="display:flex; align-items:center; gap:0.85rem;">
-                    <span class="font-mono" style="font-size:0.75rem; font-weight:700; padding:0.25rem 0.6rem; border-radius:0.4rem; background:rgba(99,102,241,0.2); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3);">${ag.time}</span>
-                    <div>
-                      <p style="font-size:0.88rem; font-weight:800; color:#ffffff;">${ag.title}</p>
-                      <p style="font-size:0.75rem; color:var(--text-dim);">Presenter: ${ag.speaker}</p>
-                    </div>
-                  </div>
-                  <span class="badge-tag" style="background:rgba(255,255,255,0.05); color:#94a3b8; border:1px solid rgba(255,255,255,0.08);">
-                    📍 ${ag.room}
-                  </span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        <!-- Supporting Sponsors -->
-        ${sponsors.length > 0 ? `
-          <div style="padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08);">
-            <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff; margin-bottom:0.85rem; display:flex; align-items:center; gap:0.5rem;">
-              <i class="fas fa-handshake" style="color:#818cf8;"></i> Supporting Sponsors & Partners
-            </h4>
-            <div class="flex items-center gap-2 flex-wrap">
-              ${sponsors.map(sp => `
-                <div class="sponsor-chip">
-                  ${sp.logo ? `<img src="${sp.logo}" style="width:1.2rem; height:1.2rem; border-radius:50%;" onerror="this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=120&q=80'" alt="">` : ''}
-                  <span>${sp.name}</span>
-                  <span style="font-size:0.65rem; color:#818cf8; background:rgba(99,102,241,0.15); padding:0.15rem 0.4rem; border-radius:0.3rem;">${sp.tier}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        <!-- Assigned Workforce Crew Section -->
-        <div style="padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08);">
-          <div class="flex items-center justify-between" style="margin-bottom:0.85rem;">
-            <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.5rem;">
-              <i class="fas fa-users-cog" style="color:#818cf8;"></i> Assigned EventForce Crew (${tasks.length})
-            </h4>
-            <span class="telemetry-label" style="margin:0;">Live Shift Status</span>
-          </div>
-
-          ${tasks.length === 0 ? `
-            <p style="font-size:0.82rem; color:var(--text-dim); font-style:italic;">No crew tasks assigned to this summit yet.</p>
-          ` : `
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              ${tasks.map(t => `
-                <div style="padding:0.75rem 1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:0.85rem; display:flex; align-items:center; justify-content:space-between;">
-                  <div>
-                    <p style="font-size:0.85rem; font-weight:800; color:#ffffff;">${t.title}</p>
-                    <p style="font-size:0.72rem; color:var(--text-dim);">Crew: <span style="color:#818cf8; font-weight:700;">${t.assignedToName}</span> (${t.roleRequired})</p>
-                  </div>
-                  <span class="badge-tag" style="background:${t.status === 'Completed' ? 'rgba(16,185,129,0.2)' : t.status === 'In Progress' ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.1)'}; color:${t.status === 'Completed' ? '#6ee7b7' : t.status === 'In Progress' ? '#fde68a' : '#cbd5e1'};">
-                    ${t.status}
-                  </span>
-                </div>
-              `).join('')}
-            </div>
-          `}
-        </div>
-
-        <!-- Attendee Reviews & Star Ratings -->
-        <div style="padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08);">
-          <div class="flex items-center justify-between" style="margin-bottom:0.85rem;">
-            <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.5rem;">
-              <i class="fas fa-star" style="color:#f59e0b;"></i> Attendee Feedback (${feedbacks.length})
-            </h4>
-          </div>
-
-          ${feedbacks.length > 0 ? `
-            <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1rem;">
-              ${feedbacks.map(fb => `
-                <div style="padding:0.85rem 1rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07); border-radius:0.85rem;">
-                  <div class="flex items-center justify-between" style="margin-bottom:0.25rem;">
-                    <span style="font-size:0.85rem; font-weight:800; color:#ffffff;">${fb.attendeeName}</span>
-                    <span style="color:#f59e0b; font-size:0.85rem;">${'★'.repeat(fb.rating)}${'☆'.repeat(5 - fb.rating)}</span>
-                  </div>
-                  <p style="font-size:0.8rem; color:#94a3b8;">${fb.comment}</p>
-                </div>
-              `).join('')}
-            </div>
-          ` : `
-            <p style="font-size:0.82rem; color:var(--text-dim); font-style:italic; margin-bottom:1rem;">No reviews submitted yet. Be the first to share your experience!</p>
-          `}
-
-          <!-- Review Submission Form -->
-          <div style="padding:1rem; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.2); border-radius:1rem;">
-            <p style="font-size:0.82rem; font-weight:800; color:#ffffff; margin-bottom:0.5rem;">Leave Feedback</p>
-            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              <select id="reviewRatingSelect" class="form-control" style="width:auto; min-width:130px;">
-                <option value="5">★★★★★ (5 Stars)</option>
-                <option value="4">★★★★☆ (4 Stars)</option>
-                <option value="3">★★★☆☆ (3 Stars)</option>
-              </select>
-              <input type="text" id="reviewCommentInput" placeholder="Share your experience..." class="form-control" style="flex:1;">
-              <button onclick="handleFeedbackSubmit('${evt.id}')" class="ef-btn ef-btn-primary ef-btn-sm" style="flex-shrink:0;">
-                Submit
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action Bar -->
-        <div class="flex items-center justify-end gap-3" style="padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08);">
-          <button onclick="closeModal('eventDetailsModal')" class="ef-btn ef-btn-secondary">
-            Close
-          </button>
-          <button onclick="closeModal('eventDetailsModal'); openBookingModal('${evt.id}')" class="ef-btn ef-btn-primary">
-            Proceed to Book Pass
-          </button>
-        </div>
-      </div>
-    `;
-
-    openModal('eventDetailsModal');
-  } catch (err) {
-    showToast('Failed to load event details: ' + err.message, 'error');
-  }
-}
-
-async function handleFeedbackSubmit(eventId) {
-  if (!currentUser) {
-    showToast('Please sign in to submit feedback!', 'warning');
-    openLoginModal();
-    return;
-  }
-  const rating = document.getElementById('reviewRatingSelect').value;
-  const comment = document.getElementById('reviewCommentInput').value.trim();
-
-  try {
-    await api.submitFeedback(eventId, rating, comment);
-    triggerConfetti();
-    showToast('Thank you for your feedback!', 'success');
-    openEventDetailsModal(eventId);
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
-}
-
-// Booking Modal
-function openBookingModal(eventId) {
-  const event = eventsList.find(e => e.id === eventId);
-  if (!event) {
-    showToast('Event not found', 'error');
-    return;
-  }
-
-  document.getElementById('bookingEventId').value = event.id;
-  document.getElementById('bookingEventTitle').innerText = event.title;
-  document.getElementById('bookingEventPrice').innerText = event.ticketPrice === 0 ? 'FREE' : `$${event.ticketPrice}`;
-  document.getElementById('bookingEventDate').innerText = `${new Date(event.date).toLocaleDateString()} (${event.time})`;
-  document.getElementById('bookingEventVenue').innerText = event.venue;
-
-  if (currentUser) {
-    document.getElementById('bookAttendeeName').value = currentUser.name || '';
-    document.getElementById('bookAttendeeEmail').value = currentUser.email || '';
-    document.getElementById('bookAttendeePhone').value = currentUser.phone || '';
-  }
-
-  openModal('bookingModal');
-}
-
-async function handleBookingSubmit(e) {
-  e.preventDefault();
-  const eventId = document.getElementById('bookingEventId').value;
-  const name = document.getElementById('bookAttendeeName').value.trim();
-  const email = document.getElementById('bookAttendeeEmail').value.trim();
-  const phone = document.getElementById('bookAttendeePhone').value.trim();
-  const college = document.getElementById('bookAttendeeCollege').value.trim();
-
-  if (!currentUser) {
-    showToast('Please sign in or use one-click Attendee login to book tickets!', 'warning');
-    openLoginModal();
-    return;
-  }
-
-  try {
-    const res = await api.bookTicket({
-      eventId,
-      attendeeName: name,
-      attendeeEmail: email,
-      attendeePhone: phone,
-      college
-    });
-
-    closeModal('bookingModal');
-    triggerConfetti();
-    showToast('🎉 Admission pass confirmed!', 'success');
-
-    showTicketPass(res.ticket);
-    loadEvents();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
-}
-
-// Display Digital Ticket Pass with QR Code
-function showTicketPass(ticket) {
-  const container = document.getElementById('ticketPassContainer');
-  container.innerHTML = `
-    <div id="printableTicket" class="ticket-hologram-card" style="padding:2rem;">
-      <div class="ticket-notch-left"></div>
-      <div class="ticket-notch-right"></div>
-
-      <div class="flex items-center justify-between" style="padding-bottom:1.25rem; border-bottom:1px solid rgba(255,255,255,0.1);">
-        <div>
-          <span style="font-size:0.68rem; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; color:#818cf8;">EventForce Official Pass</span>
-          <h3 style="font-size:1.45rem; font-weight:900; color:#ffffff; margin-top:0.2rem;">${ticket.eventTitle}</h3>
-        </div>
-        <div class="text-right">
-          <span class="telemetry-label" style="margin:0;">PASS SERIAL</span>
-          <span class="font-mono" style="font-size:0.95rem; font-weight:800; color:#38bdf8;">${ticket.ticketNumber}</span>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6" style="padding:1.5rem 0; align-items:center;">
-        <div style="display:flex; flex-direction:column; gap:1rem;" class="md:col-span-2">
-          <div>
-            <span class="telemetry-label" style="margin:0;">DELEGATE / ATTENDEE</span>
-            <p style="font-size:1.15rem; font-weight:800; color:#ffffff; margin-top:0.15rem;">${ticket.attendeeName}</p>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <span class="telemetry-label" style="margin:0;">DATE & TIME</span>
-              <p style="font-size:0.85rem; font-weight:700; color:#cbd5e1; margin-top:0.15rem;">${ticket.eventDate} | ${ticket.eventTime}</p>
-            </div>
-            <div>
-              <span class="telemetry-label" style="margin:0;">ADMISSION STATUS</span>
-              <p style="font-size:0.85rem; font-weight:800; margin-top:0.15rem; color:${ticket.status === 'Checked In' ? '#10b981' : '#38bdf8'};">
-                ${ticket.status}
-              </p>
-            </div>
-          </div>
-          <div>
-            <span class="telemetry-label" style="margin:0;">VENUE / ACCESS HALL</span>
-            <p style="font-size:0.85rem; color:#94a3b8; margin-top:0.15rem;">${ticket.eventVenue}</p>
-          </div>
-        </div>
-
-        <!-- Real QR Code rendering -->
-        <div class="flex flex-col items-center justify-center">
-          <div class="qr-scan-box">
-            <div id="qrcodeBox" style="width:120px; height:120px; display:flex; align-items:center; justify-content:center;"></div>
-          </div>
-          <span class="font-mono" style="font-size:0.65rem; color:var(--text-dim); margin-top:0.5rem; text-align:center;">Scan at gate for instant admission</span>
-        </div>
-      </div>
-
-      <div class="ticket-perforation"></div>
-
-      <div class="flex items-center justify-between no-print" style="font-size:0.75rem; color:var(--text-dim);">
-        <span>Cryptographically Signed • Tamper Resistant</span>
-        <button onclick="window.print()" class="ef-btn ef-btn-primary ef-btn-sm">
-          <i class="fas fa-print"></i> Print Ticket Pass
-        </button>
-      </div>
-    </div>
-  `;
-
-  // Render QR Code
-  setTimeout(() => {
-    const qrBox = document.getElementById('qrcodeBox');
-    if (qrBox && typeof QRCode !== 'undefined') {
-      qrBox.innerHTML = '';
-      new QRCode(qrBox, {
-        text: ticket.qrData || ticket.ticketNumber,
-        width: 120,
-        height: 120,
-        colorDark: "#090e1a",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
+    // Role switcher
+    const roleSelect = document.getElementById('current-role');
+    if (roleSelect) {
+      roleSelect.addEventListener('change', (e) => {
+        this.currentRole = e.target.value;
+        this.applyRolePermissions();
+        this.showAlert(`Switched active role to: ${this.currentRole}`, 'info');
       });
     }
-  }, 100);
 
-  openModal('ticketModal');
-}
+    // Quick action triggers
+    const batchBtn = document.getElementById('btn-quick-batch');
+    if (batchBtn) batchBtn.addEventListener('click', () => this.runNightlyBatchJob());
 
-// Load Attendee's Tickets
-async function loadMyTickets() {
-  const container = document.getElementById('myTicketsList');
-  if (!currentUser) {
-    container.innerHTML = `
-      <div class="glass-card" style="padding:3.5rem 1.5rem; text-align:center;">
-        <i class="fas fa-lock" style="font-size:2.5rem; color:#64748b; margin-bottom:1rem;"></i>
-        <h3 style="font-size:1.25rem; font-weight:800; color:#ffffff;">Sign In to View Passes</h3>
-        <p style="font-size:0.85rem; color:var(--text-muted); margin:0.35rem 0 1.5rem;">Please log in or switch to the Attendee interactive persona.</p>
-        <button onclick="quickSwitchDemo('attendee')" class="ef-btn ef-btn-primary">
-          Switch to Attendee Demo
-        </button>
-      </div>
-    `;
-    return;
+    const reminderBtn = document.getElementById('btn-quick-reminder');
+    if (reminderBtn) reminderBtn.addEventListener('click', () => this.trigger3DayReminders());
+
+    // Search and filters
+    const eventSearch = document.getElementById('event-search');
+    const eventFilterType = document.getElementById('event-filter-type');
+    const eventFilterStatus = document.getElementById('event-filter-status');
+    if (eventSearch) eventSearch.addEventListener('input', () => this.renderEventsTable());
+    if (eventFilterType) eventFilterType.addEventListener('change', () => this.renderEventsTable());
+    if (eventFilterStatus) eventFilterStatus.addEventListener('change', () => this.renderEventsTable());
+
+    const clientSearch = document.getElementById('client-search');
+    if (clientSearch) clientSearch.addEventListener('input', () => this.renderClientsTable());
+
+    const vendorSearch = document.getElementById('vendor-search');
+    const vendorFilterService = document.getElementById('vendor-filter-service');
+    const vendorFilterStatus = document.getElementById('vendor-filter-status');
+    if (vendorSearch) vendorSearch.addEventListener('input', () => this.renderVendorsTable());
+    if (vendorFilterService) vendorFilterService.addEventListener('change', () => this.renderVendorsTable());
+    if (vendorFilterStatus) vendorFilterStatus.addEventListener('change', () => this.renderVendorsTable());
+
+    const venueSearch = document.getElementById('venue-search');
+    const venueFilterStatus = document.getElementById('venue-filter-status');
+    if (venueSearch) venueSearch.addEventListener('input', () => this.renderVenuesTable());
+    if (venueFilterStatus) venueFilterStatus.addEventListener('change', () => this.renderVenuesTable());
+
+    const feedbackSearch = document.getElementById('feedback-search');
+    const feedbackFilterRating = document.getElementById('feedback-filter-rating');
+    if (feedbackSearch) feedbackSearch.addEventListener('input', () => this.renderFeedbackTable());
+    if (feedbackFilterRating) feedbackFilterRating.addEventListener('change', () => this.renderFeedbackTable());
   }
 
-  try {
-    const res = await api.getMyTickets();
-    const tickets = res.tickets || [];
+  async fetchData() {
+    try {
+      const res = await fetch('/api/database');
+      if (res.ok) {
+        this.db = await res.json();
+      }
+    } catch (e) {
+      console.warn('Backend not responding or static preview mode. Using default cache.', e);
+    }
+  }
 
-    if (tickets.length === 0) {
-      container.innerHTML = `
-        <div class="glass-card" style="padding:3.5rem 1.5rem; text-align:center;">
-          <i class="fas fa-ticket-alt" style="font-size:2.5rem; color:#64748b; margin-bottom:1rem;"></i>
-          <h3 style="font-size:1.25rem; font-weight:800; color:#ffffff;">No Passes Found</h3>
-          <p style="font-size:0.85rem; color:var(--text-muted); margin:0.35rem 0 1.5rem;">You haven't reserved passes for any summits yet.</p>
-          <button onclick="switchTab('events')" class="ef-btn ef-btn-primary">
-            Explore Summits
-          </button>
-        </div>
-      `;
-      return;
+  switchTab(tabId) {
+    this.currentTab = tabId;
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+    const activeBtn = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    const pane = document.getElementById(`tab-${tabId}`);
+    if (pane) pane.classList.add('active');
+
+    const titles = {
+      dashboard: ['Operations Dashboard', 'Real-time overview of bookings, vendors, and satisfaction'],
+      events: ['Event Management', 'Create, filter, coordinate and track event schedules'],
+      clients: ['Client Directory', 'Maintain client profiles and contact information'],
+      vendors: ['Vendor Coordination', 'Track suppliers, caterers, decorators and entertainment services'],
+      venues: ['Venue & Hall Reservations', 'Monitor venue capacities and reservation statuses'],
+      eventVendors: ['EventVendor Junction', 'Many-to-Many assignments linking events and suppliers'],
+      feedback: ['Client Feedback', 'Post-event ratings, reviews, and satisfaction metrics'],
+      approvals: ['Approvals & Flows', 'Event cancellation workflows, approval decisions, and email logs'],
+      reports: ['Analytics & Reports', 'Standard Salesforce-aligned event and budget reports'],
+      documentation: ['Project Documentation & Viva Guide', 'Full Naan Mudhalvan specification, architecture, and viva defense']
+    };
+
+    if (titles[tabId]) {
+      document.getElementById('page-title').textContent = titles[tabId][0];
+      document.getElementById('page-subtitle').textContent = titles[tabId][1];
     }
 
-    container.innerHTML = tickets.map(ticket => `
-      <div class="glass-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4" style="padding:1.5rem;">
-        <div>
-          <div class="flex items-center gap-2" style="margin-bottom:0.35rem;">
-            <span class="font-mono badge-tag" style="background:rgba(255,255,255,0.06); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1);">
-              ${ticket.ticketNumber}
-            </span>
-            <span class="badge-tag" style="background:${ticket.status === 'Checked In' ? 'rgba(16,185,129,0.2)' : ticket.status === 'Cancelled' ? 'rgba(244,63,94,0.2)' : 'rgba(56,189,248,0.2)'}; color:${ticket.status === 'Checked In' ? '#6ee7b7' : ticket.status === 'Cancelled' ? '#fca5a5' : '#7dd3fc'};">
-              ${ticket.status}
-            </span>
-          </div>
-          <h4 style="font-size:1.2rem; font-weight:800; color:#ffffff;">${ticket.eventTitle}</h4>
-          <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.35rem; display:flex; align-items:center; gap:0.6rem;">
-            <span><i class="far fa-calendar-alt" style="color:#818cf8; margin-right:0.25rem;"></i> ${ticket.eventDate} (${ticket.eventTime})</span>
-            <span>•</span>
-            <span><i class="fas fa-map-marker-alt" style="color:#818cf8; margin-right:0.25rem;"></i> ${ticket.eventVenue}</span>
-          </p>
-        </div>
-
-        <div class="flex items-center gap-2 w-full md:w-auto">
-          <button onclick='showTicketPass(${JSON.stringify(ticket)})' class="ef-btn ef-btn-secondary ef-btn-sm" style="flex:1;">
-            <i class="fas fa-qrcode"></i> View Hologram Pass
-          </button>
-          ${ticket.status !== 'Cancelled' ? `
-            <button onclick="handleCancelTicket('${ticket.id}')" class="ef-btn ef-btn-danger ef-btn-sm">
-              Cancel
-            </button>
-          ` : ''}
-        </div>
-      </div>
-    `).join('');
-  } catch (err) {
-    showToast('Failed to load passes: ' + err.message, 'error');
-  }
-}
-
-async function handleCancelTicket(ticketId) {
-  if (!confirm('Are you sure you want to cancel this event ticket?')) return;
-  try {
-    await api.cancelTicket(ticketId);
-    showToast('Pass cancelled', 'info');
-    loadMyTickets();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
-}
-
-// Workforce Crew Portal
-async function loadWorkforcePortal() {
-  const container = document.getElementById('workforceTasksList');
-  const rosterContainer = document.getElementById('crewDirectoryList');
-
-  try {
-    const tasksRes = await api.getWorkforceTasks();
-    const tasks = tasksRes.tasks || [];
-    const myTasks = currentUser ? tasks.filter(t => t.assignedToUserId === currentUser.id) : tasks;
-
-    // Render Stats
-    document.getElementById('wfTotalTasks').innerText = tasks.length;
-    document.getElementById('wfActiveTasks').innerText = tasks.filter(t => t.status === 'In Progress').length;
-    document.getElementById('wfCompletedTasks').innerText = tasks.filter(t => t.status === 'Completed').length;
-
-    // Render My Assigned Shifts
-    if (myTasks.length === 0) {
-      container.innerHTML = `
-        <div style="grid-column: 1 / -1; padding: 3rem 1.5rem; text-align: center;" class="glass-card">
-          <div style="width: 3.5rem; height: 3.5rem; border-radius: 50%; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem; font-size: 1.35rem; color: #64748b;">
-            <i class="fas fa-clipboard-check"></i>
-          </div>
-          <p style="font-size: 0.95rem; font-weight: 800; color: #ffffff;">No shifts assigned to your profile currently.</p>
-          <p style="font-size: 0.78rem; color: var(--text-dim); margin-top: 0.25rem;">Switch to Event Director persona to assign shifts or view all shifts.</p>
-        </div>
-      `;
-    } else {
-      const priorityStyles = {
-        'High': { bg: 'rgba(244,63,94,0.15)', color: '#fca5a5', border: 'rgba(244,63,94,0.35)' },
-        'Medium': { bg: 'rgba(245,158,11,0.15)', color: '#fde68a', border: 'rgba(245,158,11,0.35)' },
-        'Low': { bg: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: 'rgba(255,255,255,0.12)' }
-      };
-
-      container.innerHTML = myTasks.map(t => {
-        const pStyle = priorityStyles[t.priority] || priorityStyles.Medium;
-        return `
-          <div class="task-item-card">
-            <div>
-              <div class="flex items-center justify-between gap-2" style="margin-bottom:0.75rem;">
-                <span class="badge-tag" style="background:${pStyle.bg}; color:${pStyle.color}; border:1px solid ${pStyle.border};">
-                  ${t.priority} Priority
-                </span>
-                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600; display:flex; align-items:center; gap:0.35rem;">
-                  <i class="far fa-clock" style="color:#818cf8;"></i> ${t.shiftStart} - ${t.shiftEnd}
-                </span>
-              </div>
-
-              <h4 style="font-size:1.05rem; font-weight:800; color:#ffffff; line-height:1.3;">${t.title}</h4>
-              <p style="font-size:0.8rem; font-weight:700; color:#818cf8; margin-top:0.25rem;" class="truncate">${t.eventTitle}</p>
-              <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem; line-height:1.5;">${t.description}</p>
-
-              <div class="grid grid-cols-2 gap-2" style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.06); font-size:0.72rem;">
-                <div class="truncate">
-                  <span class="telemetry-label" style="margin:0;">LOCATION</span>
-                  <span style="font-weight:700; color:#ffffff;" class="truncate block">📍 ${t.location || 'Main Venue'}</span>
-                </div>
-                <div class="truncate">
-                  <span class="telemetry-label" style="margin:0;">ASSIGNED CREW</span>
-                  <span style="font-weight:700; color:#38bdf8;" class="truncate block">👤 ${t.assignedToName}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex items-center justify-between" style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.06);">
-              <span class="telemetry-label" style="margin:0;">Shift Progress:</span>
-              <select onchange="updateShiftStatus('${t.id}', this.value)" 
-                      class="form-control" style="width:auto; padding:0.35rem 0.65rem; font-size:0.78rem; font-weight:700;">
-                <option value="Assigned" ${t.status === 'Assigned' ? 'selected' : ''}>Assigned</option>
-                <option value="In Progress" ${t.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
-                <option value="Completed" ${t.status === 'Completed' ? 'selected' : ''}>Completed</option>
-              </select>
-            </div>
-          </div>
-        `;
-      }).join('');
+    if (tabId === 'dashboard') {
+      this.renderDashboard();
+    } else if (tabId === 'reports') {
+      this.showReport(this.currentReport);
     }
-
-    // Load Crew Directory
-    const dirRes = await api.getCrewDirectory();
-    const crew = dirRes.crew || [];
-    if (rosterContainer) {
-      rosterContainer.innerHTML = crew.map(c => `
-        <div style="padding:0.75rem 1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:0.85rem; display:flex; align-items:center; justify-content:space-between;">
-          <div class="flex items-center gap-3">
-            <img src="${c.avatar}" style="width:2.25rem; height:2.25rem; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.15);" alt="${c.name}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80';">
-            <div>
-              <p style="font-size:0.85rem; font-weight:800; color:#ffffff; line-height:1.2;">${c.name}</p>
-              <p style="font-size:0.72rem; color:var(--text-dim);">${c.department} • <span style="color:#818cf8; font-weight:600;">${c.specialization}</span></p>
-              <p style="font-size:0.68rem; color:#64748b; margin-top:1px;">${c.phone}</p>
-            </div>
-          </div>
-          <div class="text-right">
-            <span class="badge-tag" style="background:${c.activeTasks > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)'}; color:${c.activeTasks > 0 ? '#fde68a' : '#6ee7b7'};">
-              ${c.activeTasks} Shifts
-            </span>
-          </div>
-        </div>
-      `).join('');
-    }
-
-  } catch (err) {
-    showToast('Workforce load error: ' + err.message, 'error');
-  }
-}
-
-async function updateShiftStatus(taskId, status) {
-  try {
-    await api.updateTaskStatus(taskId, status);
-    showToast(`Task status updated to ${status}`, 'success');
-    loadWorkforcePortal();
-  } catch (err) {
-    showToast(err.message, 'error');
-    loadWorkforcePortal();
-  }
-}
-
-// Crew Real-Time Entry Check-In Desk Tool
-async function handleCheckInSubmit(e) {
-  e.preventDefault();
-  const input = document.getElementById('checkInTicketInput');
-  const resultBox = document.getElementById('checkInResultBox');
-  const code = input.value.trim();
-
-  if (!code) {
-    showToast('Please enter a ticket number or scan code', 'warning');
-    return;
   }
 
-  try {
-    const res = await api.checkInTicket(code);
-    resultBox.className = 'block';
-    resultBox.innerHTML = `
-      <div style="padding:1rem; border-radius:0.85rem; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); display:flex; align-items:flex-start; gap:0.85rem;">
-        <div style="width:2rem; height:2rem; border-radius:50%; background:#10b981; color:#ffffff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <i class="fas fa-check"></i>
-        </div>
-        <div>
-          <h5 style="font-size:0.95rem; font-weight:800; color:#ffffff;">${res.message}</h5>
-          <p style="font-size:0.8rem; color:#cbd5e1; margin-top:0.2rem;">Attendee: <strong style="color:#ffffff;">${res.ticket.attendeeName}</strong> (${res.ticket.college || 'Participant'})</p>
-          <p style="font-size:0.75rem; color:#6ee7b7; margin-top:0.25rem;">Pass: ${res.ticket.ticketNumber} • Summit: ${res.ticket.eventTitle}</p>
-        </div>
-      </div>
+  applyRolePermissions() {
+    // Milestones 14-18 Profiles & Roles
+    const isAdmin = this.currentRole === 'Event Admin';
+    const isCoordinator = this.currentRole === 'Event Coordinator';
+    const isVendorMgr = this.currentRole === 'Vendor Manager';
+    const isClient = this.currentRole === 'Client';
+
+    const addEventBtn = document.getElementById('btn-add-event');
+    const addClientBtn = document.getElementById('btn-add-client');
+    const addVendorBtn = document.getElementById('btn-add-vendor');
+    const addVenueBtn = document.getElementById('btn-add-venue');
+    const addAssignBtn = document.getElementById('btn-add-event-vendor');
+    const addFeedbackBtn = document.getElementById('btn-add-feedback');
+
+    if (addEventBtn) addEventBtn.style.display = (isAdmin || isCoordinator) ? 'inline-flex' : 'none';
+    if (addClientBtn) addClientBtn.style.display = (isAdmin || isCoordinator) ? 'inline-flex' : 'none';
+    if (addVendorBtn) addVendorBtn.style.display = (isAdmin || isVendorMgr) ? 'inline-flex' : 'none';
+    if (addVenueBtn) addVenueBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+    if (addAssignBtn) addAssignBtn.style.display = (isAdmin || isCoordinator || isVendorMgr) ? 'inline-flex' : 'none';
+    if (addFeedbackBtn) addFeedbackBtn.style.display = 'inline-flex';
+
+    this.renderAll();
+  }
+
+  showAlert(message, type = 'error') {
+    const banner = document.getElementById('alert-banner');
+    if (!banner) return;
+    banner.className = `alert-banner ${type}`;
+    banner.innerHTML = `
+      <span>${message}</span>
+      <button onclick="document.getElementById('alert-banner').classList.add('hidden')" style="background:none;border:none;cursor:pointer;font-weight:bold;color:inherit;">✕</button>
     `;
-    input.value = '';
-    showToast('Check-in confirmed!', 'success');
-  } catch (err) {
-    resultBox.className = 'block';
-    resultBox.innerHTML = `
-      <div style="padding:1rem; border-radius:0.85rem; background:rgba(244,63,94,0.15); border:1px solid rgba(244,63,94,0.4); display:flex; align-items:flex-start; gap:0.85rem;">
-        <div style="width:2rem; height:2rem; border-radius:50%; background:#f43f5e; color:#ffffff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <i class="fas fa-exclamation-triangle"></i>
-        </div>
-        <div>
-          <h5 style="font-size:0.95rem; font-weight:800; color:#ffffff;">Verification Failed</h5>
-          <p style="font-size:0.8rem; color:#fca5a5; margin-top:0.2rem;">${err.message}</p>
-        </div>
-      </div>
-    `;
-    showToast(err.message, 'error');
+    banner.classList.remove('hidden');
+
+    setTimeout(() => {
+      banner.classList.add('hidden');
+    }, 6000);
   }
-}
 
-// Admin Dashboard
-async function loadAdminDashboard() {
-  try {
-    const res = await api.getDashboardAnalytics();
-    const stats = res.stats;
+  renderAll() {
+    this.renderDashboard();
+    this.renderEventsTable();
+    this.renderClientsTable();
+    this.renderVendorsTable();
+    this.renderVenuesTable();
+    this.renderEventVendorsTable();
+    this.renderFeedbackTable();
+    this.renderApprovalsAndLogs();
+  }
 
-    // Stat counters
-    document.getElementById('admTotalEvents').innerText = stats.totalEvents;
-    document.getElementById('admTotalRegs').innerText = stats.totalRegistrations;
-    document.getElementById('admCheckedIn').innerText = `${stats.checkedInAttendees} (${stats.checkInRate}%)`;
-    document.getElementById('admTotalStaff').innerText = stats.totalStaff;
+  // ================= DASHBOARD & CHARTS =================
+  renderDashboard() {
+    const events = this.getFilteredRoleEvents();
+    const clients = this.db.clients;
+    const vendors = this.db.vendors;
+    const venues = this.db.venues;
+    const feedback = this.db.feedback;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const upcomingEvents = events.filter(e => e.date >= todayStr && e.status !== 'Canceled');
+    const availVendors = vendors.filter(v => v.status === 'Available');
+    const availVenues = venues.filter(v => v.availabilityStatus === 'Available');
+
+    const totalRatings = feedback.reduce((sum, f) => sum + f.rating, 0);
+    const avgRating = feedback.length > 0 ? (totalRatings / feedback.length).toFixed(1) : '0.0';
+
+    document.getElementById('kpi-total-events').textContent = events.length;
+    document.getElementById('kpi-upcoming-events').textContent = `${upcomingEvents.length} Upcoming`;
+    document.getElementById('kpi-total-clients').textContent = clients.length;
+    document.getElementById('kpi-total-vendors').textContent = vendors.length;
+    document.getElementById('kpi-avail-vendors').textContent = `${availVendors.length} Available`;
+    document.getElementById('kpi-total-venues').textContent = venues.length;
+    document.getElementById('kpi-avail-venues').textContent = `${availVenues.length} Available`;
+    document.getElementById('kpi-avg-rating').textContent = `${avgRating} / 5`;
+    document.getElementById('kpi-total-feedback').textContent = `Based on ${feedback.length} reviews`;
 
     // Render Charts
-    renderAnalyticsCharts(stats);
+    this.renderMonthChart(upcomingEvents);
+    this.renderTypeChart(events);
+    this.renderStatusChart(events);
 
-    // Render Event Management Table
-    renderAdminEventsTable();
-
-    // Populate dropdowns for shift assignment modal
-    populateStaffAndEventDropdowns();
-
-    // Render Attendee Verification Table
-    renderAdminAttendeesTable();
-  } catch (err) {
-    showToast('Failed to load dashboard: ' + err.message, 'error');
+    // Mini lists
+    this.renderDashboardPendingList();
+    this.renderDashboardNotifList();
   }
-}
 
-function renderAnalyticsCharts(stats) {
-  // 1. Categories chart
-  const catCanvas = document.getElementById('chartCategories');
-  if (catCanvas && typeof Chart !== 'undefined') {
-    const ctx = catCanvas.getContext('2d');
-    if (categoryChartInstance) categoryChartInstance.destroy();
+  renderMonthChart(upcomingEvents) {
+    const ctx = document.getElementById('chart-month');
+    if (!ctx) return;
 
-    const labels = Object.keys(stats.categoryCounts);
-    const data = Object.values(stats.categoryCounts);
+    const monthCount = {};
+    upcomingEvents.forEach(e => {
+      const month = e.date.substring(0, 7);
+      monthCount[month] = (monthCount[month] || 0) + 1;
+    });
 
-    categoryChartInstance = new Chart(ctx, {
+    const labels = Object.keys(monthCount).sort();
+    const data = labels.map(k => monthCount[k]);
+
+    if (this.charts.month) this.charts.month.destroy();
+    this.charts.month = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: labels,
+        labels: labels.length ? labels : ['No upcoming'],
         datasets: [{
-          data: data,
-          backgroundColor: ['#6366f1', '#06b6d4', '#ec4899', '#10b981', '#f59e0b'],
-          borderColor: '#0b101d',
-          borderWidth: 2
+          data: data.length ? data : [1],
+          backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { 
-            position: 'bottom', 
-            labels: { 
-              boxWidth: 12, 
-              color: '#cbd5e1',
-              font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } 
-            } 
-          }
+          legend: { position: 'bottom' }
         }
       }
     });
   }
 
-  // 2. Workforce Tasks chart
-  const wfCanvas = document.getElementById('chartWorkforce');
-  if (wfCanvas && typeof Chart !== 'undefined') {
-    const ctx = wfCanvas.getContext('2d');
-    if (workforceChartInstance) workforceChartInstance.destroy();
+  renderTypeChart(events) {
+    const ctx = document.getElementById('chart-type');
+    if (!ctx) return;
 
-    workforceChartInstance = new Chart(ctx, {
+    const typeCount = {};
+    events.forEach(e => {
+      typeCount[e.type] = (typeCount[e.type] || 0) + 1;
+    });
+
+    const labels = Object.keys(typeCount);
+    const data = labels.map(k => typeCount[k]);
+
+    if (this.charts.type) this.charts.type.destroy();
+    this.charts.type = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Assigned', 'In Progress', 'Completed'],
+        labels,
         datasets: [{
-          label: 'Shifts & Tasks',
-          data: [
-            stats.taskStatusCounts['Assigned'] || 0,
-            stats.taskStatusCounts['In Progress'] || 0,
-            stats.taskStatusCounts['Completed'] || 0
-          ],
-          backgroundColor: ['#64748b', '#f59e0b', '#10b981'],
-          borderRadius: 6
+          label: 'Event Count',
+          data,
+          backgroundColor: '#6366f1'
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          y: { 
-            beginAtZero: true, 
-            ticks: { stepSize: 1, color: '#94a3b8' },
-            grid: { color: 'rgba(255,255,255,0.06)' }
-          },
-          x: {
-            ticks: { color: '#94a3b8' },
-            grid: { display: false }
-          }
-        },
-        plugins: {
-          legend: { display: false }
+          y: { beginAtZero: true, ticks: { precision: 0 } }
         }
       }
     });
   }
-}
 
-async function renderAdminEventsTable() {
-  const tableBody = document.getElementById('adminEventsTableBody');
-  const res = await api.getEvents();
-  const events = res.events || [];
+  renderStatusChart(events) {
+    const ctx = document.getElementById('chart-status');
+    if (!ctx) return;
 
-  tableBody.innerHTML = events.map(e => `
-    <tr>
-      <td>
-        <div class="flex items-center gap-3">
-          <img src="${e.bannerUrl}" style="width:2.5rem; height:2.5rem; border-radius:0.5rem; object-fit:cover;" alt="" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=300&q=80';">
-          <div>
-            <p style="font-size:0.88rem; font-weight:800; color:#ffffff;">${e.title}</p>
-            <p style="font-size:0.75rem; color:var(--text-dim);">${e.venue}</p>
-          </div>
-        </div>
-      </td>
-      <td>
-        <span class="badge-tag" style="background:rgba(255,255,255,0.06); color:#cbd5e1;">
-          ${e.category}
-        </span>
-      </td>
-      <td style="color:#cbd5e1;">
-        ${new Date(e.date).toLocaleDateString()}
-      </td>
-      <td style="font-weight:700; color:#ffffff;">
-        ${e.registeredCount} / ${e.capacity}
-      </td>
-      <td style="font-weight:800; color:${e.ticketPrice === 0 ? '#10b981' : '#ffffff'};">
-        ${e.ticketPrice === 0 ? 'Free' : `$${e.ticketPrice}`}
-      </td>
-      <td style="text-align:right;">
-        <button onclick="handleDeleteEvent('${e.id}')" style="background:transparent; border:none; color:var(--text-dim); cursor:pointer; padding:0.4rem; transition:color 0.2s;" onmouseover="this.style.color='#f43f5e'" onmouseout="this.style.color='var(--text-dim)'" title="Delete Summit">
-          <i class="fas fa-trash-alt"></i>
-        </button>
-      </td>
-    </tr>
-  `).join('');
-}
+    const statusCount = {};
+    events.forEach(e => {
+      statusCount[e.status] = (statusCount[e.status] || 0) + 1;
+    });
 
-async function handleDeleteEvent(eventId) {
-  if (!confirm('Are you sure you want to delete this event and its crew assignments?')) return;
-  try {
-    await api.deleteEvent(eventId);
-    showToast('Event deleted successfully', 'success');
-    loadAdminDashboard();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
-}
+    const labels = Object.keys(statusCount);
+    const data = labels.map(k => statusCount[k]);
 
-async function populateStaffAndEventDropdowns() {
-  try {
-    const eventsRes = await api.getEvents();
-    const staffRes = await api.getUsers('staff');
-
-    const eventSelect = document.getElementById('assignEventSelect');
-    const staffSelect = document.getElementById('assignStaffSelect');
-
-    if (eventSelect) {
-      eventSelect.innerHTML = (eventsRes.events || []).map(e => `
-        <option value="${e.id}">${e.title}</option>
-      `).join('');
-    }
-
-    if (staffSelect) {
-      staffSelect.innerHTML = (staffRes.users || []).map(s => `
-        <option value="${s.id}">${s.name} (${s.department || 'Staff'})</option>
-      `).join('');
-    }
-  } catch (err) {
-    console.error('Error populating dropdowns:', err);
-  }
-}
-
-async function renderAdminAttendeesTable() {
-  const container = document.getElementById('adminAttendeesTableBody');
-  try {
-    const events = (await api.getEvents()).events || [];
-    let allRegistrations = [];
-
-    for (const evt of events) {
-      const regRes = await api.getEventAttendees(evt.id);
-      if (regRes.registrations) {
-        allRegistrations.push(...regRes.registrations);
+    if (this.charts.status) this.charts.status.destroy();
+    this.charts.status = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: ['#0284c7', '#16a34a', '#64748b', '#f59e0b', '#dc2626', '#9ca3af']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        }
       }
-    }
+    });
+  }
 
-    if (allRegistrations.length === 0) {
-      container.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-dim);">No attendee registrations recorded yet.</td></tr>`;
+  renderDashboardPendingList() {
+    const container = document.getElementById('dashboard-pending-list');
+    if (!container) return;
+    const pendings = this.db.cancellationRequests.filter(r => r.status === 'Pending');
+
+    if (pendings.length === 0) {
+      container.innerHTML = `<div class="text-muted" style="padding: 12px; font-size: 0.85rem;">No pending cancellation approvals.</div>`;
       return;
     }
 
-    container.innerHTML = allRegistrations.map(r => `
+    container.innerHTML = pendings.map(r => {
+      const event = this.db.events.find(e => e.id === r.eventId);
+      return `
+        <div class="mini-item">
+          <div>
+            <div class="mini-item-title">${event ? event.name : r.eventId}</div>
+            <div class="mini-item-meta">Requested by: ${r.requestedBy} • Reason: ${r.reason}</div>
+          </div>
+          <button class="btn btn-sm btn-primary" onclick="app.switchTab('approvals')">Review</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  renderDashboardNotifList() {
+    const container = document.getElementById('dashboard-notif-list');
+    if (!container) return;
+    const logs = (this.db.notificationLogs || []).slice(0, 5);
+
+    if (logs.length === 0) {
+      container.innerHTML = `<div class="text-muted" style="padding: 12px; font-size: 0.85rem;">No emails dispatched yet.</div>`;
+      return;
+    }
+
+    container.innerHTML = logs.map(l => `
+      <div class="mini-item">
+        <div>
+          <div class="mini-item-title">${l.subject}</div>
+          <div class="mini-item-meta">To: ${l.recipient} • ${l.date}</div>
+        </div>
+        <span class="badge info">${l.status}</span>
+      </div>
+    `).join('');
+  }
+
+  getFilteredRoleEvents() {
+    if (this.currentRole === 'Client') {
+      // Client profile only sees own events (Ananya Pandey CLI-1001)
+      return this.db.events.filter(e => e.clientId === 'CLI-1001');
+    }
+    return this.db.events;
+  }
+
+  // ================= EVENTS =================
+  renderEventsTable() {
+    const tbody = document.getElementById('events-table-body');
+    if (!tbody) return;
+
+    const searchTerm = (document.getElementById('event-search')?.value || '').toLowerCase();
+    const typeFilter = document.getElementById('event-filter-type')?.value || '';
+    const statusFilter = document.getElementById('event-filter-status')?.value || '';
+
+    const events = this.getFilteredRoleEvents().filter(e => {
+      const matchSearch = e.name.toLowerCase().includes(searchTerm) || e.id.toLowerCase().includes(searchTerm);
+      const matchType = !typeFilter || e.type === typeFilter;
+      const matchStatus = !statusFilter || e.status === statusFilter;
+      return matchSearch && matchType && matchStatus;
+    });
+
+    if (events.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 24px; color: #64748b;">No events found matching criteria.</td></tr>`;
+      return;
+    }
+
+    const canEdit = this.currentRole === 'Event Admin' || this.currentRole === 'Event Coordinator';
+
+    tbody.innerHTML = events.map(e => {
+      const client = this.db.clients.find(c => c.id === e.clientId);
+      const venue = this.db.venues.find(v => v.id === e.venueId);
+
+      let actionHtml = '';
+      if (canEdit) {
+        actionHtml = `
+          <button class="btn btn-sm btn-secondary" onclick="app.openEditEventModal('${e.id}')">Edit</button>
+          ${e.status === 'Confirmed' ? `<button class="btn btn-sm btn-outline" onclick="app.openCancelRequestModal('${e.id}')">Cancel</button>` : ''}
+          <button class="btn btn-sm btn-danger" onclick="app.deleteEvent('${e.id}')">Delete</button>
+        `;
+      } else if (this.currentRole === 'Client' && e.status === 'Confirmed') {
+        actionHtml = `<button class="btn btn-sm btn-outline" onclick="app.openCancelRequestModal('${e.id}')">Request Cancel</button>`;
+      } else {
+        actionHtml = `<span style="font-size: 0.75rem; color: #94a3b8;">Read Only</span>`;
+      }
+
+      return `
+        <tr>
+          <td><strong>${e.id}</strong></td>
+          <td>
+            <div style="font-weight: 600;">${e.name}</div>
+            <small style="color: #64748b;">${e.description ? e.description.slice(0, 40) + '...' : ''}</small>
+          </td>
+          <td>${e.date}</td>
+          <td><span class="badge info">${e.type}</span></td>
+          <td>${client ? client.name : e.clientId}</td>
+          <td>${venue ? venue.name : e.venueId}</td>
+          <td>₹${Number(e.budget).toLocaleString()}</td>
+          <td><span class="badge ${e.status.replace(/\s+/g, '.')}">${e.status}</span></td>
+          <td>${actionHtml}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  openEventModal() {
+    document.getElementById('modal-event-title').textContent = 'Create New Event';
+    document.getElementById('form-event').reset();
+    document.getElementById('event-id').value = '';
+
+    this.populateClientSelect('event-client');
+    this.populateVenueSelect('event-venue');
+
+    // Default formula budget
+    const typeSelect = document.getElementById('event-type');
+    typeSelect.value = 'Wedding';
+    document.getElementById('event-budget').value = DEFAULT_BUDGETS.Wedding;
+
+    this.openModal('modal-event');
+  }
+
+  onEventTypeChanged() {
+    const type = document.getElementById('event-type').value;
+    const budgetInput = document.getElementById('event-budget');
+    if (!budgetInput.value || budgetInput.value === '0' || Object.values(DEFAULT_BUDGETS).includes(Number(budgetInput.value))) {
+      budgetInput.value = DEFAULT_BUDGETS[type] || 15000;
+    }
+  }
+
+  openEditEventModal(id) {
+    const event = this.db.events.find(e => e.id === id);
+    if (!event) return;
+
+    document.getElementById('modal-event-title').textContent = `Edit Event: ${event.name}`;
+    document.getElementById('event-id').value = event.id;
+    document.getElementById('event-name').value = event.name;
+    document.getElementById('event-date').value = event.date;
+    document.getElementById('event-type').value = event.type;
+    document.getElementById('event-status').value = event.status;
+    document.getElementById('event-budget').value = event.budget;
+    document.getElementById('event-description').value = event.description || '';
+
+    this.populateClientSelect('event-client', event.clientId);
+    this.populateVenueSelect('event-venue', event.venueId);
+
+    this.openModal('modal-event');
+  }
+
+  async handleSaveEvent(e) {
+    e.preventDefault();
+    const id = document.getElementById('event-id').value;
+    const name = document.getElementById('event-name').value;
+    const date = document.getElementById('event-date').value;
+    const type = document.getElementById('event-type').value;
+    const status = document.getElementById('event-status').value;
+    const budget = document.getElementById('event-budget').value;
+    const clientId = document.getElementById('event-client').value;
+    const venueId = document.getElementById('event-venue').value;
+    const description = document.getElementById('event-description').value;
+
+    const payload = { name, date, type, status, budget, clientId, venueId, description };
+
+    try {
+      const url = id ? `/api/events/${id}` : '/api/events';
+      const method = id ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        this.showAlert(data.error || 'Failed to save event');
+        return;
+      }
+
+      this.closeModal('modal-event');
+      this.showAlert(`Event successfully ${id ? 'updated' : 'created'}!`, 'success');
+      await this.fetchData();
+      this.renderAll();
+    } catch (err) {
+      this.showAlert('Server error saving event');
+    }
+  }
+
+  async deleteEvent(id) {
+    if (!confirm('Are you sure you want to delete this event? This will also remove any assigned vendor links.')) return;
+    try {
+      const res = await fetch(`/api/events/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        this.showAlert('Event deleted.', 'info');
+        await this.fetchData();
+        this.renderAll();
+      }
+    } catch (e) {
+      this.showAlert('Failed to delete event');
+    }
+  }
+
+  // ================= CLIENTS =================
+  renderClientsTable() {
+    const tbody = document.getElementById('clients-table-body');
+    if (!tbody) return;
+
+    const search = (document.getElementById('client-search')?.value || '').toLowerCase();
+    const clients = this.db.clients.filter(c => 
+      c.name.toLowerCase().includes(search) || 
+      c.email.toLowerCase().includes(search) || 
+      c.city.toLowerCase().includes(search)
+    );
+
+    const canManage = this.currentRole === 'Event Admin' || this.currentRole === 'Event Coordinator';
+
+    tbody.innerHTML = clients.map(c => `
       <tr>
-        <td class="font-mono" style="font-weight:700; color:#38bdf8;">${r.ticketNumber}</td>
+        <td><strong>${c.id}</strong></td>
+        <td><div style="font-weight:600;">${c.name}</div></td>
+        <td><a href="mailto:${c.email}">${c.email}</a></td>
+        <td>${c.phone}</td>
+        <td>${c.city}</td>
+        <td>${c.country}</td>
+        <td><small>${c.address || '-'}</small></td>
         <td>
-          <p style="font-weight:800; color:#ffffff;">${r.attendeeName}</p>
-          <p style="font-size:0.72rem; color:var(--text-dim);">${r.attendeeEmail} • ${r.attendeePhone || 'N/A'}</p>
-        </td>
-        <td class="truncate" style="max-width:200px; color:#cbd5e1;">${r.eventTitle}</td>
-        <td>
-          <span class="badge-tag" style="background:${r.status === 'Checked In' ? 'rgba(16,185,129,0.2)' : 'rgba(56,189,248,0.2)'}; color:${r.status === 'Checked In' ? '#6ee7b7' : '#7dd3fc'};">
-            ${r.status}
-          </span>
-        </td>
-        <td style="color:var(--text-dim);">${new Date(r.registeredAt).toLocaleDateString()}</td>
-        <td style="text-align:right;">
-          ${r.status !== 'Checked In' ? `
-            <button onclick="quickAdminCheckIn('${r.ticketNumber}')" class="ef-btn ef-btn-primary ef-btn-sm">
-              Verify Check-In
-            </button>
-          ` : `
-            <span style="font-size:0.75rem; color:#10b981; font-weight:800;"><i class="fas fa-check-circle mr-1"></i>Verified</span>
-          `}
+          ${canManage ? `
+            <button class="btn btn-sm btn-secondary" onclick="app.openEditClientModal('${c.id}')">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="app.deleteClient('${c.id}')">Delete</button>
+          ` : `<span style="font-size:0.75rem;color:#94a3b8;">View Only</span>`}
         </td>
       </tr>
     `).join('');
-  } catch (err) {
-    console.error('Error rendering attendees:', err);
   }
-}
 
-async function quickAdminCheckIn(ticketNum) {
-  try {
-    await api.checkInTicket(ticketNum);
-    showToast(`Checked in ticket ${ticketNum}`, 'success');
-    renderAdminAttendeesTable();
-    loadAdminDashboard();
-  } catch (err) {
-    showToast(err.message, 'error');
+  openClientModal() {
+    document.getElementById('modal-client-title').textContent = 'Add New Client';
+    document.getElementById('form-client').reset();
+    document.getElementById('client-id').value = '';
+    this.openModal('modal-client');
   }
-}
 
-// Assign Crew Task Form
-async function handleAssignTaskSubmit(e) {
-  e.preventDefault();
-  const eventId = document.getElementById('assignEventSelect').value;
-  const staffId = document.getElementById('assignStaffSelect').value;
-  const title = document.getElementById('assignTaskTitle').value.trim();
-  const role = document.getElementById('assignTaskRole').value.trim();
-  const start = document.getElementById('assignShiftStart').value.trim();
-  const end = document.getElementById('assignShiftEnd').value.trim();
-  const priority = document.getElementById('assignPriority').value;
-  const description = document.getElementById('assignDescription').value.trim();
+  openEditClientModal(id) {
+    const client = this.db.clients.find(c => c.id === id);
+    if (!client) return;
 
-  try {
-    await api.createWorkforceTask({
-      eventId,
-      assignedToUserId: staffId,
-      title,
-      roleRequired: role,
-      shiftStart: start,
-      shiftEnd: end,
-      priority,
-      description
+    document.getElementById('modal-client-title').textContent = `Edit Client: ${client.name}`;
+    document.getElementById('client-id').value = client.id;
+    document.getElementById('client-name').value = client.name;
+    document.getElementById('client-email').value = client.email;
+    document.getElementById('client-phone').value = client.phone;
+    document.getElementById('client-country').value = client.country || 'India';
+    document.getElementById('client-city').value = client.city || 'Hyderabad';
+    document.getElementById('client-address').value = client.address || '';
+
+    this.openModal('modal-client');
+  }
+
+  async handleSaveClient(e) {
+    e.preventDefault();
+    const id = document.getElementById('client-id').value;
+    const name = document.getElementById('client-name').value;
+    const email = document.getElementById('client-email').value;
+    const phone = document.getElementById('client-phone').value;
+    const country = document.getElementById('client-country').value;
+    const city = document.getElementById('client-city').value;
+    const address = document.getElementById('client-address').value;
+
+    const payload = { name, email, phone, country, city, address };
+
+    try {
+      const url = id ? `/api/clients/${id}` : '/api/clients';
+      const method = id ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        this.showAlert(data.error || 'Failed to save client');
+        return;
+      }
+
+      this.closeModal('modal-client');
+      this.showAlert(`Client successfully ${id ? 'updated' : 'saved'}!`, 'success');
+      await this.fetchData();
+      this.renderAll();
+    } catch (err) {
+      this.showAlert('Server error saving client');
+    }
+  }
+
+  async deleteClient(id) {
+    if (!confirm('Are you sure you want to delete this client?')) return;
+    try {
+      const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) {
+        this.showAlert(data.error);
+        return;
+      }
+      this.showAlert('Client deleted.', 'info');
+      await this.fetchData();
+      this.renderAll();
+    } catch (e) {
+      this.showAlert('Failed to delete client');
+    }
+  }
+
+  // ================= VENDORS =================
+  renderVendorsTable() {
+    const tbody = document.getElementById('vendors-table-body');
+    if (!tbody) return;
+
+    const search = (document.getElementById('vendor-search')?.value || '').toLowerCase();
+    const serviceFilter = document.getElementById('vendor-filter-service')?.value || '';
+    const statusFilter = document.getElementById('vendor-filter-status')?.value || '';
+
+    const vendors = this.db.vendors.filter(v => {
+      const matchSearch = v.name.toLowerCase().includes(search) || v.serviceType.toLowerCase().includes(search);
+      const matchService = !serviceFilter || v.serviceType === serviceFilter;
+      const matchStatus = !statusFilter || v.status === statusFilter;
+      return matchSearch && matchService && matchStatus;
     });
 
-    closeModal('assignTaskModal');
-    showToast('Crew shift assigned successfully!', 'success');
-    loadAdminDashboard();
-  } catch (err) {
-    showToast(err.message, 'error');
+    const canManage = this.currentRole === 'Event Admin' || this.currentRole === 'Vendor Manager';
+
+    tbody.innerHTML = vendors.map(v => `
+      <tr>
+        <td><strong>${v.id}</strong></td>
+        <td><div style="font-weight:600;">${v.name}</div></td>
+        <td><span class="badge info">${v.serviceType}</span></td>
+        <td>${v.email}</td>
+        <td>${v.phone}</td>
+        <td>⭐ ${v.rating || 4.5}</td>
+        <td><span class="badge ${v.status}">${v.status}</span></td>
+        <td>
+          ${canManage ? `
+            <button class="btn btn-sm btn-secondary" onclick="app.openEditVendorModal('${v.id}')">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="app.deleteVendor('${v.id}')">Delete</button>
+          ` : `<span style="font-size:0.75rem;color:#94a3b8;">View Only</span>`}
+        </td>
+      </tr>
+    `).join('');
   }
-}
 
-// Create Event Form
-async function handleCreateEventSubmit(e) {
-  e.preventDefault();
-  const title = document.getElementById('createEventTitle').value.trim();
-  const category = document.getElementById('createEventCategory').value;
-  const date = document.getElementById('createEventDate').value;
-  const time = document.getElementById('createEventTime').value.trim();
-  const venue = document.getElementById('createEventVenue').value.trim();
-  const capacity = document.getElementById('createEventCapacity').value;
-  const ticketPrice = document.getElementById('createEventPrice').value;
-  const bannerUrl = document.getElementById('createEventBanner').value.trim();
-  const description = document.getElementById('createEventDescription').value.trim();
+  openVendorModal() {
+    document.getElementById('modal-vendor-title').textContent = 'Add New Vendor';
+    document.getElementById('form-vendor').reset();
+    document.getElementById('vendor-id').value = '';
+    this.openModal('modal-vendor');
+  }
 
-  try {
-    await api.createEvent({
-      title,
-      category,
-      date,
-      time,
-      venue,
-      capacity,
-      ticketPrice,
-      bannerUrl,
-      description
+  openEditVendorModal(id) {
+    const v = this.db.vendors.find(item => item.id === id);
+    if (!v) return;
+
+    document.getElementById('modal-vendor-title').textContent = `Edit Vendor: ${v.name}`;
+    document.getElementById('vendor-id').value = v.id;
+    document.getElementById('vendor-name').value = v.name;
+    document.getElementById('vendor-service').value = v.serviceType;
+    document.getElementById('vendor-status').value = v.status;
+    document.getElementById('vendor-email').value = v.email;
+    document.getElementById('vendor-phone').value = v.phone;
+    document.getElementById('vendor-rating').value = v.rating || 4.8;
+
+    this.openModal('modal-vendor');
+  }
+
+  async handleSaveVendor(e) {
+    e.preventDefault();
+    const id = document.getElementById('vendor-id').value;
+    const name = document.getElementById('vendor-name').value;
+    const serviceType = document.getElementById('vendor-service').value;
+    const status = document.getElementById('vendor-status').value;
+    const email = document.getElementById('vendor-email').value;
+    const phone = document.getElementById('vendor-phone').value;
+    const rating = document.getElementById('vendor-rating').value;
+
+    const payload = { name, serviceType, status, email, phone, rating };
+
+    try {
+      const url = id ? `/api/vendors/${id}` : '/api/vendors';
+      const method = id ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        this.showAlert(data.error || 'Failed to save vendor');
+        return;
+      }
+
+      this.closeModal('modal-vendor');
+      this.showAlert(`Vendor successfully ${id ? 'updated' : 'saved'}!`, 'success');
+      await this.fetchData();
+      this.renderAll();
+    } catch (err) {
+      this.showAlert('Server error saving vendor');
+    }
+  }
+
+  async deleteVendor(id) {
+    if (!confirm('Are you sure you want to delete this vendor?')) return;
+    try {
+      const res = await fetch(`/api/vendors/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        this.showAlert('Vendor deleted.', 'info');
+        await this.fetchData();
+        this.renderAll();
+      }
+    } catch (e) {
+      this.showAlert('Failed to delete vendor');
+    }
+  }
+
+  // ================= VENUES =================
+  renderVenuesTable() {
+    const tbody = document.getElementById('venues-table-body');
+    if (!tbody) return;
+
+    const search = (document.getElementById('venue-search')?.value || '').toLowerCase();
+    const statusFilter = document.getElementById('venue-filter-status')?.value || '';
+
+    const venues = this.db.venues.filter(v => {
+      const matchSearch = v.name.toLowerCase().includes(search) || v.address.toLowerCase().includes(search);
+      const matchStatus = !statusFilter || v.availabilityStatus === statusFilter;
+      return matchSearch && matchStatus;
     });
 
-    closeModal('createEventModal');
-    showToast('New summit created and published!', 'success');
-    loadAdminDashboard();
-    loadEvents();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
-}
+    const canManage = this.currentRole === 'Event Admin';
 
-// Setup Event Listeners
-function setupEventListeners() {
-  const searchInput = document.getElementById('eventSearchInput');
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      clearTimeout(window.searchTimer);
-      window.searchTimer = setTimeout(loadEvents, 300);
+    tbody.innerHTML = venues.map(v => `
+      <tr>
+        <td><strong>${v.id}</strong></td>
+        <td><div style="font-weight:600;">${v.name}</div></td>
+        <td>${v.address}</td>
+        <td>${v.capacity.toLocaleString()} guests</td>
+        <td>${v.location ? `<a href="${v.location}" target="_blank" class="btn btn-sm btn-outline">📍 View Map</a>` : '-'}</td>
+        <td><span class="badge ${v.availabilityStatus.replace(/\s+/g, '.')}">${v.availabilityStatus}</span></td>
+        <td>
+          ${canManage ? `
+            <button class="btn btn-sm btn-secondary" onclick="app.openEditVenueModal('${v.id}')">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="app.deleteVenue('${v.id}')">Delete</button>
+          ` : `<span style="font-size:0.75rem;color:#94a3b8;">View Only</span>`}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  openVenueModal() {
+    document.getElementById('modal-venue-title').textContent = 'Add New Venue';
+    document.getElementById('form-venue').reset();
+    document.getElementById('venue-id').value = '';
+    this.openModal('modal-venue');
+  }
+
+  openEditVenueModal(id) {
+    const v = this.db.venues.find(item => item.id === id);
+    if (!v) return;
+
+    document.getElementById('modal-venue-title').textContent = `Edit Venue: ${v.name}`;
+    document.getElementById('venue-id').value = v.id;
+    document.getElementById('venue-name').value = v.name;
+    document.getElementById('venue-capacity').value = v.capacity;
+    document.getElementById('venue-status').value = v.availabilityStatus;
+    document.getElementById('venue-address').value = v.address;
+    document.getElementById('venue-location').value = v.location || '';
+
+    this.openModal('modal-venue');
+  }
+
+  async handleSaveVenue(e) {
+    e.preventDefault();
+    const id = document.getElementById('venue-id').value;
+    const name = document.getElementById('venue-name').value;
+    const capacity = document.getElementById('venue-capacity').value;
+    const availabilityStatus = document.getElementById('venue-status').value;
+    const address = document.getElementById('venue-address').value;
+    const location = document.getElementById('venue-location').value;
+
+    const payload = { name, capacity, availabilityStatus, address, location };
+
+    try {
+      const url = id ? `/api/venues/${id}` : '/api/venues';
+      const method = id ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        this.showAlert(data.error || 'Failed to save venue');
+        return;
+      }
+
+      this.closeModal('modal-venue');
+      this.showAlert(`Venue successfully ${id ? 'updated' : 'saved'}!`, 'success');
+      await this.fetchData();
+      this.renderAll();
+    } catch (err) {
+      this.showAlert('Server error saving venue');
+    }
+  }
+
+  async deleteVenue(id) {
+    if (!confirm('Are you sure you want to delete this venue?')) return;
+    try {
+      const res = await fetch(`/api/venues/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) {
+        this.showAlert(data.error);
+        return;
+      }
+      this.showAlert('Venue deleted.', 'info');
+      await this.fetchData();
+      this.renderAll();
+    } catch (e) {
+      this.showAlert('Failed to delete venue');
+    }
+  }
+
+  // ================= EVENT VENDORS (JUNCTION OBJECT) =================
+  renderEventVendorsTable() {
+    const tbody = document.getElementById('event-vendors-table-body');
+    if (!tbody) return;
+
+    const assignments = this.db.eventVendors || [];
+    const canManage = this.currentRole !== 'Client';
+
+    if (assignments.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 20px; color:#64748b;">No vendor assignments recorded.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = assignments.map(a => {
+      const event = this.db.events.find(e => e.id === a.eventId);
+      const vendor = this.db.vendors.find(v => v.id === a.vendorId);
+
+      return `
+        <tr>
+          <td><strong>${a.id}</strong></td>
+          <td>${event ? event.name : a.eventId}</td>
+          <td>${event ? event.date : '-'}</td>
+          <td><span style="font-weight:600;">${vendor ? vendor.name : a.vendorId}</span></td>
+          <td><span class="badge info">${a.serviceType}</span></td>
+          <td><small>${a.notes || 'General service'}</small></td>
+          <td>
+            ${canManage ? `
+              <button class="btn btn-sm btn-danger" onclick="app.removeEventVendor('${a.id}')">Remove</button>
+            ` : `<span style="font-size:0.75rem;color:#94a3b8;">View Only</span>`}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  openEventVendorModal() {
+    document.getElementById('form-event-vendor').reset();
+    this.populateEventSelect('assign-event');
+    this.populateVendorSelect('assign-vendor');
+    this.openModal('modal-event-vendor');
+  }
+
+  onVendorSelectedForAssign() {
+    const vId = document.getElementById('assign-vendor').value;
+    const vendor = this.db.vendors.find(v => v.id === vId);
+    if (vendor) {
+      document.getElementById('assign-service').value = vendor.serviceType;
+    }
+  }
+
+  async handleSaveEventVendor(e) {
+    e.preventDefault();
+    const eventId = document.getElementById('assign-event').value;
+    const vendorId = document.getElementById('assign-vendor').value;
+    const serviceType = document.getElementById('assign-service').value;
+    const notes = document.getElementById('assign-notes').value;
+
+    try {
+      const res = await fetch('/api/event-vendors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, vendorId, serviceType, notes })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        this.showAlert(data.error);
+        return;
+      }
+      this.closeModal('modal-event-vendor');
+      this.showAlert('Vendor assigned to event successfully!', 'success');
+      await this.fetchData();
+      this.renderAll();
+    } catch (err) {
+      this.showAlert('Failed to assign vendor');
+    }
+  }
+
+  async removeEventVendor(id) {
+    if (!confirm('Remove this vendor assignment from the event?')) return;
+    try {
+      const res = await fetch(`/api/event-vendors/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        this.showAlert('Assignment removed', 'info');
+        await this.fetchData();
+        this.renderAll();
+      }
+    } catch (e) {
+      this.showAlert('Failed to remove assignment');
+    }
+  }
+
+  // ================= FEEDBACK (LOOKUP FILTER ENFORCED) =================
+  renderFeedbackTable() {
+    const tbody = document.getElementById('feedback-table-body');
+    if (!tbody) return;
+
+    const search = (document.getElementById('feedback-search')?.value || '').toLowerCase();
+    const ratingFilter = document.getElementById('feedback-filter-rating')?.value || '';
+
+    const feedbacks = (this.db.feedback || []).filter(f => {
+      const client = this.db.clients.find(c => c.id === f.clientId);
+      const event = this.db.events.find(e => e.id === f.eventId);
+      const clientName = client ? client.name.toLowerCase() : '';
+      const eventName = event ? event.name.toLowerCase() : '';
+      const comments = (f.comments || '').toLowerCase();
+
+      const matchSearch = clientName.includes(search) || eventName.includes(search) || comments.includes(search);
+      const matchRating = !ratingFilter || String(f.rating) === ratingFilter;
+      return matchSearch && matchRating;
     });
+
+    const canDelete = this.currentRole === 'Event Admin';
+
+    tbody.innerHTML = feedbacks.map(f => {
+      const client = this.db.clients.find(c => c.id === f.clientId);
+      const event = this.db.events.find(e => e.id === f.eventId);
+      const stars = '⭐'.repeat(f.rating);
+
+      return `
+        <tr>
+          <td><strong>${f.id}</strong></td>
+          <td>${client ? client.name : f.clientId}</td>
+          <td>${event ? event.name : f.eventId}</td>
+          <td>${stars} (${f.rating}/5)</td>
+          <td>${f.comments}</td>
+          <td>${f.date}</td>
+          <td>
+            ${canDelete ? `
+              <button class="btn btn-sm btn-danger" onclick="app.deleteFeedback('${f.id}')">Delete</button>
+            ` : '-'}
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
 
-  // Modals & Forms
-  const bookingForm = document.getElementById('bookingForm');
-  if (bookingForm) bookingForm.addEventListener('submit', handleBookingSubmit);
+  openFeedbackModal() {
+    document.getElementById('form-feedback').reset();
+    this.populateClientSelect('feedback-client');
+    this.onFeedbackClientChange();
+    this.openModal('modal-feedback');
+  }
 
-  const checkInForm = document.getElementById('checkInForm');
-  if (checkInForm) checkInForm.addEventListener('submit', handleCheckInSubmit);
+  // Activity 3: Lookup Filter Rule (PDF Page 28-29)
+  onFeedbackClientChange() {
+    const clientId = document.getElementById('feedback-client').value;
+    const eventSelect = document.getElementById('feedback-event');
+    if (!eventSelect) return;
 
-  const assignTaskForm = document.getElementById('assignTaskForm');
-  if (assignTaskForm) assignTaskForm.addEventListener('submit', handleAssignTaskSubmit);
+    // Filter events strictly to those owned by the chosen client
+    const clientEvents = this.db.events.filter(e => e.clientId === clientId);
+    if (clientEvents.length === 0) {
+      eventSelect.innerHTML = `<option value="">-- No events found for this client --</option>`;
+    } else {
+      eventSelect.innerHTML = clientEvents.map(e => `
+        <option value="${e.id}">${e.name} (${e.date} - ${e.status})</option>
+      `).join('');
+    }
+  }
 
-  const createEventForm = document.getElementById('createEventForm');
-  if (createEventForm) createEventForm.addEventListener('submit', handleCreateEventSubmit);
+  async handleSaveFeedback(e) {
+    e.preventDefault();
+    const clientId = document.getElementById('feedback-client').value;
+    const eventId = document.getElementById('feedback-event').value;
+    const rating = document.getElementById('feedback-rating').value;
+    const comments = document.getElementById('feedback-comments').value;
 
-  const loginForm = document.getElementById('loginForm');
-  if (loginForm) loginForm.addEventListener('submit', handleLoginSubmit);
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, eventId, rating, comments })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        this.showAlert(data.error);
+        return;
+      }
+      this.closeModal('modal-feedback');
+      this.showAlert('Feedback recorded successfully! Thank you.', 'success');
+      await this.fetchData();
+      this.renderAll();
+    } catch (err) {
+      this.showAlert('Failed to save feedback');
+    }
+  }
 
-  const registerForm = document.getElementById('registerForm');
-  if (registerForm) registerForm.addEventListener('submit', handleRegisterSubmit);
-}
+  async deleteFeedback(id) {
+    if (!confirm('Delete this feedback entry?')) return;
+    try {
+      const res = await fetch(`/api/feedback/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        this.showAlert('Feedback deleted.', 'info');
+        await this.fetchData();
+        this.renderAll();
+      }
+    } catch (e) {
+      this.showAlert('Failed to delete feedback');
+    }
+  }
 
-// Auth Form Handlers
-async function handleLoginSubmit(e) {
-  e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
+  // ================= CANCELLATION APPROVAL WORKFLOW =================
+  openCancelRequestModal(eventId) {
+    const event = this.db.events.find(e => e.id === eventId);
+    if (!event) return;
 
-  try {
-    const res = await api.login(email, password);
-    currentUser = res.user;
-    updateAuthUI();
-    closeModal('loginModal');
-    showToast(res.message, 'success');
-    if (currentTab === 'my-tickets') loadMyTickets();
-    if (currentTab === 'workforce') loadWorkforcePortal();
-  } catch (err) {
-    showToast(err.message, 'error');
+    document.getElementById('cancel-event-id').value = event.id;
+    document.getElementById('cancel-event-info').innerHTML = `
+      Submitting cancellation request for: <strong>${event.name}</strong><br>
+      Date: <strong>${event.date}</strong> | Venue: <strong>${event.venueId}</strong>
+    `;
+    document.getElementById('cancel-reason').value = '';
+    this.openModal('modal-cancel-request');
+  }
+
+  async handleSaveCancellationRequest(e) {
+    e.preventDefault();
+    const eventId = document.getElementById('cancel-event-id').value;
+    const reason = document.getElementById('cancel-reason').value;
+
+    try {
+      const res = await fetch('/api/cancellation/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, requestedBy: this.currentRole, reason })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        this.showAlert(data.error);
+        return;
+      }
+
+      this.closeModal('modal-cancel-request');
+      this.showAlert('Cancellation request submitted into approval queue!', 'success');
+      await this.fetchData();
+      this.renderAll();
+    } catch (err) {
+      this.showAlert('Failed to submit cancellation request');
+    }
+  }
+
+  async reviewCancellationRequest(requestId, action) {
+    try {
+      const res = await fetch('/api/cancellation/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action, reviewerName: this.currentRole })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        this.showAlert(data.error);
+        return;
+      }
+
+      this.showAlert(`Cancellation request was ${action === 'approve' ? 'APPROVED (Venue released)' : 'REJECTED (Event reverted)'}.`, 'success');
+      await this.fetchData();
+      this.renderAll();
+    } catch (err) {
+      this.showAlert('Failed to review cancellation request');
+    }
+  }
+
+  renderApprovalsAndLogs() {
+    const queueContainer = document.getElementById('approvals-queue-container');
+    const logContainer = document.getElementById('email-log-container');
+
+    if (queueContainer) {
+      const requests = this.db.cancellationRequests || [];
+      if (requests.length === 0) {
+        queueContainer.innerHTML = `<div class="text-muted" style="padding:16px;">No cancellation requests on file.</div>`;
+      } else {
+        const canReview = this.currentRole === 'Event Admin';
+        queueContainer.innerHTML = requests.map(r => {
+          const event = this.db.events.find(e => e.id === r.eventId);
+          const isPending = r.status === 'Pending';
+
+          return `
+            <div class="queue-item">
+              <div class="queue-header">
+                <div>
+                  <strong>${event ? event.name : r.eventId}</strong>
+                  <div style="font-size: 0.8rem; color:#64748b;">Requested on: ${r.requestDate} by ${r.requestedBy}</div>
+                </div>
+                <span class="badge ${r.status === 'Approved' ? 'Canceled' : (r.status === 'Pending' ? 'warning' : 'Rejected')}">${r.status}</span>
+              </div>
+              <p style="font-size:0.85rem; margin: 8px 0; color:#334155;"><strong>Reason:</strong> ${r.reason}</p>
+              ${isPending && canReview ? `
+                <div class="queue-actions">
+                  <button class="btn btn-sm btn-primary" onclick="app.reviewCancellationRequest('${r.id}', 'approve')">✓ Approve Cancellation</button>
+                  <button class="btn btn-sm btn-danger" onclick="app.reviewCancellationRequest('${r.id}', 'reject')">✕ Reject Request</button>
+                </div>
+              ` : (isPending && !canReview ? `<small style="color:#b45309;">Waiting for Event Admin approval</small>` : `<small style="color:#15803d;">Reviewed by ${r.reviewedBy || 'Admin'} on ${r.reviewDate}</small>`)}
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    if (logContainer) {
+      const logs = this.db.notificationLogs || [];
+      if (logs.length === 0) {
+        logContainer.innerHTML = `<div class="text-muted" style="padding:16px;">No email alert records.</div>`;
+      } else {
+        logContainer.innerHTML = logs.map(l => `
+          <div class="log-item">
+            <div class="log-header">
+              <span>✉️ ${l.subject}</span>
+              <small style="color:#64748b;">${l.date}</small>
+            </div>
+            <div style="font-size:0.8rem;color:#475569;">To: <strong>${l.recipient}</strong> | Type: <em>${l.type}</em></div>
+            ${l.body ? `<pre style="font-size:0.75rem; background:#f1f5f9; padding:6px; border-radius:4px; margin-top:6px; white-space:pre-wrap;">${l.body}</pre>` : ''}
+          </div>
+        `).join('');
+      }
+    }
+  }
+
+  // ================= AUTOMATION TRIGGERS =================
+  async trigger3DayReminders() {
+    try {
+      const res = await fetch('/api/flows/trigger-reminders', { method: 'POST' });
+      const data = await res.json();
+      this.showAlert(data.message, 'success');
+      await this.fetchData();
+      this.renderAll();
+    } catch (e) {
+      this.showAlert('Failed to trigger 3-Day Reminder flow');
+    }
+  }
+
+  async runNightlyBatchJob() {
+    try {
+      const res = await fetch('/api/batch/complete-past-events', { method: 'POST' });
+      const data = await res.json();
+      this.showAlert(data.message, 'success');
+      await this.fetchData();
+      this.renderAll();
+    } catch (e) {
+      this.showAlert('Failed to execute batch job');
+    }
+  }
+
+  // ================= REPORTS =================
+  showReport(reportKey) {
+    this.currentReport = reportKey;
+    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    const btn = Array.from(document.querySelectorAll('.sub-tab-btn')).find(b => b.getAttribute('onclick')?.includes(reportKey));
+    if (btn) btn.classList.add('active');
+
+    const card = document.getElementById('report-output-card');
+    if (!card) return;
+
+    const events = this.db.events;
+    const clients = this.db.clients;
+    const venues = this.db.venues;
+    const vendors = this.db.vendors;
+
+    if (reportKey === 'upcoming-month') {
+      // Salesforce Milestone 12 - Report 1
+      const today = new Date().toISOString().split('T')[0];
+      const upcoming = events.filter(e => e.date >= today && e.status !== 'Canceled');
+
+      // Group by Month
+      const grouped = {};
+      upcoming.forEach(e => {
+        const m = e.date.substring(0, 7);
+        if (!grouped[m]) grouped[m] = [];
+        grouped[m].push(e);
+      });
+
+      let grandTotalBudget = 0;
+      let grandTotalEvents = 0;
+
+      let html = `
+        <div style="margin-bottom:16px;">
+          <h3>Report 1: Upcoming Events — Summary by Month (Milestone 12)</h3>
+          <p style="color:#64748b; font-size:0.85rem;">Filters: All Events | Date >= TODAY | Status ≠ Canceled | Grouped by Calendar Month</p>
+        </div>
+      `;
+
+      Object.keys(grouped).sort().forEach(m => {
+        const evs = grouped[m];
+        const monthBudget = evs.reduce((acc, ev) => acc + (ev.budget || 0), 0);
+        grandTotalBudget += monthBudget;
+        grandTotalEvents += evs.length;
+
+        html += `
+          <div style="margin-top:20px; border-bottom:2px solid #cbd5e1; padding-bottom:6px;">
+            <strong style="font-size:1rem; color:#1e40af;">📅 Month: ${m} (${evs.length} Events, Subtotal Budget: ₹${monthBudget.toLocaleString()})</strong>
+          </div>
+          <table class="data-table" style="margin-top:8px;">
+            <thead>
+              <tr>
+                <th>Event Name</th>
+                <th>Event Date</th>
+                <th>Type</th>
+                <th>Client</th>
+                <th>Venue</th>
+                <th>Budget</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${evs.map(e => {
+                const c = clients.find(item => item.id === e.clientId);
+                const v = venues.find(item => item.id === e.venueId);
+                return `
+                  <tr>
+                    <td><strong>${e.name}</strong></td>
+                    <td>${e.date}</td>
+                    <td><span class="badge info">${e.type}</span></td>
+                    <td>${c ? c.name : e.clientId}</td>
+                    <td>${v ? v.name : e.venueId}</td>
+                    <td>₹${Number(e.budget).toLocaleString()}</td>
+                    <td><span class="badge ${e.status.replace(/\s+/g, '.')}">${e.status}</span></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+      });
+
+      html += `
+        <div style="margin-top:24px; padding:12px; background:#f1f5f9; border-radius:6px; font-weight:700; display:flex; justify-content:space-between;">
+          <span>Grand Total Events: ${grandTotalEvents}</span>
+          <span>Grand Total Upcoming Budget: ₹${grandTotalBudget.toLocaleString()}</span>
+        </div>
+      `;
+
+      card.innerHTML = html;
+    } else if (reportKey === 'events-by-type') {
+      const typeSummary = {};
+      events.forEach(e => {
+        if (!typeSummary[e.type]) typeSummary[e.type] = { count: 0, budget: 0 };
+        typeSummary[e.type].count++;
+        typeSummary[e.type].budget += (e.budget || 0);
+      });
+
+      card.innerHTML = `
+        <div style="margin-bottom:16px;">
+          <h3>Report 2: Events by Type Summary</h3>
+          <p style="color:#64748b; font-size:0.85rem;">Categorical analysis of bookings and allocation</p>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Event Type</th><th>Count</th><th>Total Budget</th><th>Avg Budget / Event</th></tr>
+          </thead>
+          <tbody>
+            ${Object.keys(typeSummary).map(k => `
+              <tr>
+                <td><strong>${k}</strong></td>
+                <td>${typeSummary[k].count}</td>
+                <td>₹${typeSummary[k].budget.toLocaleString()}</td>
+                <td>₹${Math.round(typeSummary[k].budget / typeSummary[k].count).toLocaleString()}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } else if (reportKey === 'events-by-status') {
+      const statusSummary = {};
+      events.forEach(e => {
+        statusSummary[e.status] = (statusSummary[e.status] || 0) + 1;
+      });
+
+      card.innerHTML = `
+        <div style="margin-bottom:16px;">
+          <h3>Report 3: Events by Lifecycle Status</h3>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Status</th><th>Events Count</th><th>Percentage</th></tr></thead>
+          <tbody>
+            ${Object.keys(statusSummary).map(k => `
+              <tr>
+                <td><span class="badge ${k.replace(/\s+/g, '.')}">${k}</span></td>
+                <td>${statusSummary[k]}</td>
+                <td>${((statusSummary[k] / events.length) * 100).toFixed(1)}%</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } else if (reportKey === 'venues-utilization') {
+      card.innerHTML = `
+        <div style="margin-bottom:16px;">
+          <h3>Report 4: Venues Utilization & Capacity</h3>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Venue</th><th>Capacity</th><th>Availability</th><th>Address</th></tr></thead>
+          <tbody>
+            ${venues.map(v => `
+              <tr>
+                <td><strong>${v.name}</strong></td>
+                <td>${v.capacity.toLocaleString()} persons</td>
+                <td><span class="badge ${v.availabilityStatus.replace(/\s+/g, '.')}">${v.availabilityStatus}</span></td>
+                <td>${v.address}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } else if (reportKey === 'vendors-directory') {
+      card.innerHTML = `
+        <div style="margin-bottom:16px;">
+          <h3>Report 5: Available Vendors Directory</h3>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Vendor Name</th><th>Service Type</th><th>Status</th><th>Rating</th><th>Contact</th></tr></thead>
+          <tbody>
+            ${vendors.map(v => `
+              <tr>
+                <td><strong>${v.name}</strong></td>
+                <td><span class="badge info">${v.serviceType}</span></td>
+                <td><span class="badge ${v.status}">${v.status}</span></td>
+                <td>⭐ ${v.rating}</td>
+                <td>${v.email} | ${v.phone}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } else if (reportKey === 'feedback-summary') {
+      const fb = this.db.feedback || [];
+      const avg = fb.length ? (fb.reduce((s, f) => s + f.rating, 0) / fb.length).toFixed(2) : 0;
+      card.innerHTML = `
+        <div style="margin-bottom:16px;">
+          <h3>Report 6: Client Feedback & Satisfaction Summary</h3>
+          <p style="color:#64748b;">Average Score: <strong>⭐ ${avg} / 5.0</strong> across ${fb.length} reviews</p>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>ID</th><th>Client</th><th>Event</th><th>Score</th><th>Review</th><th>Date</th></tr></thead>
+          <tbody>
+            ${fb.map(f => {
+              const c = clients.find(item => item.id === f.clientId);
+              const ev = events.find(item => item.id === f.eventId);
+              return `
+                <tr>
+                  <td><strong>${f.id}</strong></td>
+                  <td>${c ? c.name : f.clientId}</td>
+                  <td>${ev ? ev.name : f.eventId}</td>
+                  <td>⭐ ${f.rating}</td>
+                  <td>${f.comments}</td>
+                  <td>${f.date}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    } else if (reportKey === 'budget-summary') {
+      const totalBudget = events.reduce((s, e) => s + (e.budget || 0), 0);
+      card.innerHTML = `
+        <div style="margin-bottom:16px;">
+          <h3>Report 7: Event Budget Summary</h3>
+          <p style="color:#64748b;">Total Portfolio Budget: <strong>₹${totalBudget.toLocaleString()}</strong></p>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Event ID</th><th>Event Name</th><th>Type</th><th>Status</th><th>Budget</th></tr></thead>
+          <tbody>
+            ${events.map(e => `
+              <tr>
+                <td><strong>${e.id}</strong></td>
+                <td>${e.name}</td>
+                <td><span class="badge info">${e.type}</span></td>
+                <td><span class="badge ${e.status.replace(/\s+/g, '.')}">${e.status}</span></td>
+                <td>₹${Number(e.budget).toLocaleString()}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+  }
+
+  exportReportCSV() {
+    let rows = [];
+    if (this.currentReport === 'upcoming-month') {
+      rows.push(['Event ID', 'Event Name', 'Date', 'Type', 'Budget', 'Status']);
+      this.db.events.forEach(e => {
+        rows.push([e.id, `"${e.name}"`, e.date, e.type, e.budget, e.status]);
+      });
+    } else {
+      rows.push(['Record ID', 'Name / Info', 'Details']);
+      this.db.events.forEach(e => rows.push([e.id, `"${e.name}"`, `₹${e.budget}`]));
+    }
+
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map(r => r.join(',')).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `EventForce_${this.currentReport}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // ================= UTILITIES & MODAL HELPERS =================
+  openModal(modalId) {
+    const el = document.getElementById(modalId);
+    if (el) el.classList.remove('hidden');
+  }
+
+  closeModal(modalId) {
+    const el = document.getElementById(modalId);
+    if (el) el.classList.add('hidden');
+  }
+
+  populateClientSelect(selectId, selectedId = null) {
+    const el = document.getElementById(selectId);
+    if (!el) return;
+    el.innerHTML = this.db.clients.map(c => `
+      <option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${c.name} (${c.city}, ${c.country})</option>
+    `).join('');
+  }
+
+  populateVenueSelect(selectId, selectedId = null) {
+    const el = document.getElementById(selectId);
+    if (!el) return;
+    el.innerHTML = this.db.venues.map(v => `
+      <option value="${v.id}" ${v.id === selectedId ? 'selected' : ''}>${v.name} (Cap: ${v.capacity} - ${v.availabilityStatus})</option>
+    `).join('');
+  }
+
+  populateEventSelect(selectId, selectedId = null) {
+    const el = document.getElementById(selectId);
+    if (!el) return;
+    el.innerHTML = this.db.events.map(e => `
+      <option value="${e.id}" ${e.id === selectedId ? 'selected' : ''}>${e.name} (${e.date})</option>
+    `).join('');
+  }
+
+  populateVendorSelect(selectId, selectedId = null) {
+    const el = document.getElementById(selectId);
+    if (!el) return;
+    el.innerHTML = this.db.vendors.map(v => `
+      <option value="${v.id}" ${v.id === selectedId ? 'selected' : ''}>${v.name} (${v.serviceType})</option>
+    `).join('');
   }
 }
 
-async function handleRegisterSubmit(e) {
-  e.preventDefault();
-  const name = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value;
-  const role = document.getElementById('regRole').value;
-  const phone = document.getElementById('regPhone').value.trim();
-  const department = document.getElementById('regDept').value.trim();
-
-  try {
-    const res = await api.register({
-      name,
-      email,
-      password,
-      role,
-      phone,
-      department
-    });
-    currentUser = res.user;
-    updateAuthUI();
-    closeModal('registerModal');
-    showToast(res.message, 'success');
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
-}
-
-// Modal Helpers
-function openModal(id) {
-  const el = document.getElementById(id);
-  if (el) {
-    el.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-  }
-}
-
-function closeModal(id) {
-  const el = document.getElementById(id);
-  if (el) {
-    el.classList.add('hidden');
-    document.body.style.overflow = '';
-  }
-}
-
-function openLoginModal() {
-  openModal('loginModal');
-}
-
-function openRegisterModal() {
-  openModal('registerModal');
-}
-
-// Toast System
-function showToast(message, type = 'info') {
-  const container = document.getElementById('toastContainer');
-  if (!container) return;
-
-  const toast = document.createElement('div');
-  const typeConfig = {
-    success: { bg: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', icon: 'fa-check-circle', border: 'rgba(16,185,129,0.4)' },
-    error: { bg: 'linear-gradient(135deg, #e11d48 0%, #f43f5e 100%)', icon: 'fa-times-circle', border: 'rgba(244,63,94,0.4)' },
-    warning: { bg: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)', icon: 'fa-exclamation-triangle', border: 'rgba(245,158,11,0.4)' },
-    info: { bg: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)', icon: 'fa-info-circle', border: 'rgba(99,102,241,0.4)' }
-  };
-
-  const cfg = typeConfig[type] || typeConfig.info;
-
-  toast.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    padding: 0.85rem 1.25rem;
-    border-radius: 0.85rem;
-    background: ${cfg.bg};
-    border: 1px solid ${cfg.border};
-    color: #ffffff;
-    font-size: 0.85rem;
-    font-weight: 700;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    transform: translateY(10px);
-    opacity: 0;
-    transition: all 0.25s var(--ease-smooth);
-    pointer-events: auto;
-  `;
-
-  toast.innerHTML = `
-    <i class="fas ${cfg.icon}"></i>
-    <span>${message}</span>
-  `;
-
-  container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.transform = 'translateY(0)';
-    toast.style.opacity = '1';
-  }, 10);
-
-  setTimeout(() => {
-    toast.style.transform = 'translateY(10px)';
-    toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 260);
-  }, 3800);
-}
-
-// Confetti Celebration Helper
-function triggerConfetti() {
-  if (typeof confetti === 'function') {
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
-  }
-}
+// Instantiate Global Application
+const app = new EventForceApp();

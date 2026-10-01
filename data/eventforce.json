@@ -1,0 +1,475 @@
+{
+  "events": [
+    {
+      "id": "EVT-1001",
+      "name": "Arun & Meera Grand Wedding",
+      "date": "2026-10-15",
+      "type": "Wedding",
+      "status": "Confirmed",
+      "budget": 50000,
+      "clientId": "CLI-1001",
+      "venueId": "VNU-1001",
+      "description": "Traditional royal wedding reception with 500 guests and premium catering.",
+      "createdAt": "2026-09-10",
+      "owner": "Sizzler Jaligam"
+    },
+    {
+      "id": "EVT-1002",
+      "name": "Microsoft Product Launch",
+      "date": "2026-10-22",
+      "type": "Corporate",
+      "status": "Confirmed",
+      "budget": 30000,
+      "clientId": "CLI-1002",
+      "venueId": "VNU-1002",
+      "description": "Annual enterprise tech keynote, live streaming, stage lighting and keynote addresses.",
+      "createdAt": "2026-09-12",
+      "owner": "Michael Jackson"
+    },
+    {
+      "id": "EVT-1003",
+      "name": "Riya's 21st Birthday Bash",
+      "date": "2026-10-05",
+      "type": "Birthday",
+      "status": "Confirmed",
+      "budget": 10000,
+      "clientId": "CLI-1003",
+      "venueId": "VNU-1003",
+      "description": "Theme birthday celebration with DJ music, neon stage decor and photography.",
+      "createdAt": "2026-09-14",
+      "owner": "Michael Jackson"
+    },
+    {
+      "id": "EVT-1004",
+      "name": "Global Tech Summit 2026",
+      "date": "2026-11-02",
+      "type": "Corporate",
+      "status": "Planned",
+      "budget": 30000,
+      "clientId": "CLI-1004",
+      "venueId": "VNU-1004",
+      "description": "Multi-track tech conference with international delegates and workshops.",
+      "createdAt": "2026-09-18",
+      "owner": "Sizzler Jaligam"
+    },
+    {
+      "id": "EVT-1005",
+      "name": "Sunburn Youth Music Festival",
+      "date": "2026-11-15",
+      "type": "Festival",
+      "status": "Planned",
+      "budget": 60000,
+      "clientId": "CLI-1005",
+      "venueId": "VNU-1005",
+      "description": "Open ground electronic music festival with heavy staging, pyro, and laser lights.",
+      "createdAt": "2026-09-20",
+      "owner": "Michael Jackson"
+    },
+    {
+      "id": "EVT-1006",
+      "name": "Karthik Silver Jubilee Anniversary",
+      "date": "2026-10-28",
+      "type": "Anniversary",
+      "status": "Pending Cancellation",
+      "budget": 20000,
+      "clientId": "CLI-1001",
+      "venueId": "VNU-1006",
+      "description": "Silver wedding anniversary celebration. Cancellation requested due to travel conflict.",
+      "createdAt": "2026-09-22",
+      "owner": "Michael Jackson"
+    },
+    {
+      "id": "EVT-1007",
+      "name": "Acoustic Live Concert Night",
+      "date": "2026-12-05",
+      "type": "Concert",
+      "status": "Planned",
+      "budget": 40000,
+      "clientId": "CLI-1002",
+      "venueId": "VNU-1002",
+      "description": "Charity musical concert featuring indie musicians and live stage equipment.",
+      "createdAt": "2026-09-25",
+      "owner": "Sizzler Jaligam"
+    },
+    {
+      "id": "EVT-1008",
+      "name": "Spring Food & Culture Fest",
+      "date": "2026-08-14",
+      "type": "Festival",
+      "status": "Completed",
+      "budget": 60000,
+      "clientId": "CLI-1003",
+      "venueId": "VNU-1005",
+      "description": "Successful culinary showcase featuring 40 food stalls and cultural performances.",
+      "createdAt": "2026-07-01",
+      "owner": "Michael Jackson"
+    },
+    {
+      "id": "EVT-1009",
+      "name": "DevOps Engineers Meetup",
+      "date": "2026-08-28",
+      "type": "Corporate",
+      "status": "Completed",
+      "budget": 30000,
+      "clientId": "CLI-1004",
+      "venueId": "VNU-1003",
+      "description": "Developer meetup and cloud infrastructure symposium.",
+      "createdAt": "2026-07-20",
+      "owner": "Sizzler Jaligam"
+    },
+    {
+      "id": "EVT-1010",
+      "name": "Autumn Charity Gala Dinner",
+      "date": "2026-09-05",
+      "type": "Other",
+      "status": "Canceled",
+      "budget": 15000,
+      "clientId": "CLI-1005",
+      "venueId": "VNU-1001",
+      "description": "Fundraiser gala cancelled due to severe weather advisory; venue safely released.",
+      "createdAt": "2026-08-01",
+      "owner": "Michael Jackson"
+    }
+  ],
+  "clients": [
+    {
+      "id": "CLI-1001",
+      "name": "Ananya Pandey",
+      "email": "ananya.pandey@example.com",
+      "phone": "+91 98450 12345",
+      "address": "45 Green Valley Road, Jubilee Hills",
+      "country": "India",
+      "city": "Hyderabad",
+      "createdAt": "2026-09-01"
+    },
+    {
+      "id": "CLI-1002",
+      "name": "Amit Agarwal",
+      "email": "amit.agarwal@corptech.com",
+      "phone": "+91 98200 98765",
+      "address": "Bandra Kurla Complex, 12th Floor",
+      "country": "India",
+      "city": "Mumbai",
+      "createdAt": "2026-09-02"
+    },
+    {
+      "id": "CLI-1003",
+      "name": "Sophie Martin",
+      "email": "sophie.martin@genevaevents.ch",
+      "phone": "+41 22 730 5990",
+      "address": "Rue du Rhône 14",
+      "country": "Switzerland",
+      "city": "Geneva",
+      "createdAt": "2026-09-03"
+    },
+    {
+      "id": "CLI-1004",
+      "name": "David Miller",
+      "email": "david.miller@nytech.org",
+      "phone": "+1 212 555 0199",
+      "address": "742 Broadway Avenue",
+      "country": "USA",
+      "city": "New York",
+      "createdAt": "2026-09-04"
+    },
+    {
+      "id": "CLI-1005",
+      "name": "Fatima Al-Zahra",
+      "email": "fatima.zahra@gulfcorp.ae",
+      "phone": "+971 4 312 4455",
+      "address": "Downtown Business Bay Tower A",
+      "country": "Dubai",
+      "city": "Riyadh",
+      "createdAt": "2026-09-05"
+    },
+    {
+      "id": "CLI-1006",
+      "name": "Ramesh Kumar",
+      "email": "ramesh.kumar@chennaievents.in",
+      "phone": "+91 94440 55667",
+      "address": "18 Anna Salai, T. Nagar",
+      "country": "India",
+      "city": "Chennai",
+      "createdAt": "2026-09-06"
+    }
+  ],
+  "vendors": [
+    {
+      "id": "VEN-1001",
+      "name": "Royal Feast Caterers",
+      "email": "info@royalfeast.com",
+      "phone": "+91 98401 23456",
+      "serviceType": "Catering",
+      "status": "Booked",
+      "rating": 4.8
+    },
+    {
+      "id": "VEN-1002",
+      "name": "DreamScape Floral & Stage Decor",
+      "email": "hello@dreamscapedecor.com",
+      "phone": "+91 98402 34567",
+      "serviceType": "Decor",
+      "status": "Booked",
+      "rating": 4.9
+    },
+    {
+      "id": "VEN-1003",
+      "name": "LensCraft Studio & Cinematography",
+      "email": "bookings@lenscraft.com",
+      "phone": "+91 98403 45678",
+      "serviceType": "Photography",
+      "status": "Available",
+      "rating": 4.7
+    },
+    {
+      "id": "VEN-1004",
+      "name": "BeatDrop DJ & Acoustic Sound",
+      "email": "djbeats@beatdrop.com",
+      "phone": "+91 98404 56789",
+      "serviceType": "DJ/Music",
+      "status": "Available",
+      "rating": 4.6
+    },
+    {
+      "id": "VEN-1005",
+      "name": "Lumina Pro Stage & Architectural Lighting",
+      "email": "support@luminaevents.com",
+      "phone": "+91 98405 67890",
+      "serviceType": "Lighting",
+      "status": "Booked",
+      "rating": 4.9
+    },
+    {
+      "id": "VEN-1006",
+      "name": "MotionCraft 4K Videography",
+      "email": "shoot@motioncraft.com",
+      "phone": "+91 98406 78901",
+      "serviceType": "Videography",
+      "status": "Available",
+      "rating": 4.5
+    },
+    {
+      "id": "VEN-1007",
+      "name": "Glamour Touch Bridal & Event Makeup",
+      "email": "contact@glamourtouch.com",
+      "phone": "+91 98407 89012",
+      "serviceType": "Makeup Artist",
+      "status": "Available",
+      "rating": 4.8
+    },
+    {
+      "id": "VEN-1008",
+      "name": "PrimeLine Executive Chauffeur & Fleet",
+      "email": "fleet@primelinetrans.com",
+      "phone": "+91 98408 90123",
+      "serviceType": "Transportation",
+      "status": "Available",
+      "rating": 4.6
+    }
+  ],
+  "venues": [
+    {
+      "id": "VNU-1001",
+      "name": "ITC Grand Chola Banquet Hall",
+      "address": "63 Mount Road, Guindy",
+      "location": "https://maps.google.com/?q=ITC+Grand+Chola",
+      "capacity": 800,
+      "availabilityStatus": "Reserved"
+    },
+    {
+      "id": "VNU-1002",
+      "name": "Taj Krishna Grand Ballroom",
+      "address": "Road No. 1, Banjara Hills",
+      "location": "https://maps.google.com/?q=Taj+Krishna+Hyderabad",
+      "capacity": 650,
+      "availabilityStatus": "Reserved"
+    },
+    {
+      "id": "VNU-1003",
+      "name": "The Leela Palace Royal Pavilion",
+      "address": "23 Old Airport Road, Kodihalli",
+      "location": "https://maps.google.com/?q=The+Leela+Palace+Bangalore",
+      "capacity": 450,
+      "availabilityStatus": "Reserved"
+    },
+    {
+      "id": "VNU-1004",
+      "name": "Hyderabad International Convention Centre (HICC)",
+      "address": "Novotel & HICC Complex, Hitec City",
+      "location": "https://maps.google.com/?q=HICC+Hyderabad",
+      "capacity": 2500,
+      "availabilityStatus": "Available"
+    },
+    {
+      "id": "VNU-1005",
+      "name": "Palace Grounds Open Arena",
+      "address": "Jayamahal Main Road, Armane Nagar",
+      "location": "https://maps.google.com/?q=Palace+Grounds+Bangalore",
+      "capacity": 5000,
+      "availabilityStatus": "Available"
+    },
+    {
+      "id": "VNU-1006",
+      "name": "JW Marriott Grand Lotus Ballroom",
+      "address": "IA Project Road, Chhatrapati Shivaji Airport",
+      "location": "https://maps.google.com/?q=JW+Marriott+Mumbai",
+      "capacity": 500,
+      "availabilityStatus": "Available"
+    }
+  ],
+  "eventVendors": [
+    {
+      "id": "EV-1001",
+      "eventId": "EVT-1001",
+      "vendorId": "VEN-1001",
+      "serviceType": "Catering",
+      "notes": "Full 5-course gourmet banquet menu for 500 attendees."
+    },
+    {
+      "id": "EV-1002",
+      "eventId": "EVT-1001",
+      "vendorId": "VEN-1002",
+      "serviceType": "Decor",
+      "notes": "Floral entrance archway and royal mandap setup."
+    },
+    {
+      "id": "EV-1003",
+      "eventId": "EVT-1002",
+      "vendorId": "VEN-1005",
+      "serviceType": "Lighting",
+      "notes": "Keynote stage spot lights, LED walls and truss rig."
+    },
+    {
+      "id": "EV-1004",
+      "eventId": "EVT-1002",
+      "vendorId": "VEN-1003",
+      "serviceType": "Photography",
+      "notes": "Live event coverage, press conference photos, and product stills."
+    },
+    {
+      "id": "EV-1005",
+      "eventId": "EVT-1003",
+      "vendorId": "VEN-1004",
+      "serviceType": "DJ/Music",
+      "notes": "Youth hit playlist, sound system, and smoke effects."
+    },
+    {
+      "id": "EV-1006",
+      "eventId": "EVT-1008",
+      "vendorId": "VEN-1001",
+      "serviceType": "Catering",
+      "notes": "Multi-cuisine food counters and live dessert station."
+    }
+  ],
+  "feedback": [
+    {
+      "id": "F-0001",
+      "clientId": "CLI-1003",
+      "eventId": "EVT-1008",
+      "rating": 5,
+      "comments": "Flawless organization! The food stalls and audio systems operated smoothly throughout the whole day.",
+      "date": "2026-08-16"
+    },
+    {
+      "id": "F-0002",
+      "clientId": "CLI-1004",
+      "eventId": "EVT-1009",
+      "rating": 5,
+      "comments": "Exceptional venue facilities and coordinator responsiveness. Our speakers were very happy.",
+      "date": "2026-08-30"
+    },
+    {
+      "id": "F-0003",
+      "clientId": "CLI-1001",
+      "eventId": "EVT-1001",
+      "rating": 5,
+      "comments": "The wedding planning team was so attentive. Every vendor arrived on schedule. Thank you EventForce!",
+      "date": "2026-09-12"
+    },
+    {
+      "id": "F-0004",
+      "clientId": "CLI-1002",
+      "eventId": "EVT-1002",
+      "rating": 4,
+      "comments": "Great tech setup and communication. Venue acoustics were top notch.",
+      "date": "2026-09-15"
+    },
+    {
+      "id": "F-0005",
+      "clientId": "CLI-1005",
+      "eventId": "EVT-1010",
+      "rating": 4,
+      "comments": "Handled our unexpected weather cancellation professionally with full venue release and fast communication.",
+      "date": "2026-09-08"
+    }
+  ],
+  "users": [
+    {
+      "id": "USR-101",
+      "username": "sizzler.admin@eventforce.com",
+      "name": "Sizzler Jaligam",
+      "role": "Event Admin",
+      "profile": "Event Admin",
+      "email": "sushanth2805@gmail.com",
+      "alias": "sjali"
+    },
+    {
+      "id": "USR-102",
+      "username": "michael.coordinator@eventforce.com",
+      "name": "Michael Jackson",
+      "role": "Event Coordinator",
+      "profile": "Event Coordinator",
+      "email": "michael.coord@eventforce.com",
+      "alias": "mjack"
+    },
+    {
+      "id": "USR-103",
+      "username": "vendor.manager@eventforce.com",
+      "name": "Vendor Operations Head",
+      "role": "Vendor Manager",
+      "profile": "Vendor Manager",
+      "email": "vendor.mgr@eventforce.com",
+      "alias": "vmgr"
+    },
+    {
+      "id": "USR-104",
+      "username": "ananya.client@eventforce.com",
+      "name": "Ananya Pandey",
+      "role": "Client",
+      "profile": "Client Profile",
+      "email": "ananya.pandey@example.com",
+      "alias": "apand",
+      "clientId": "CLI-1001"
+    }
+  ],
+  "cancellationRequests": [
+    {
+      "id": "CR-1001",
+      "eventId": "EVT-1006",
+      "requestedBy": "Michael Jackson",
+      "requestDate": "2026-09-26",
+      "reason": "Client requested postponement due to overseas family travel conflict.",
+      "status": "Pending",
+      "reviewedBy": null,
+      "reviewDate": null
+    }
+  ],
+  "notificationLogs": [
+    {
+      "id": "NOTIF-1001",
+      "type": "Cancellation Alert",
+      "recipient": "sushanth2805@gmail.com (Event Coordinator)",
+      "subject": "Approval Request: Cancel Event Karthik Silver Jubilee Anniversary",
+      "date": "2026-09-26 10:15",
+      "status": "Sent"
+    },
+    {
+      "id": "NOTIF-1002",
+      "type": "Client 3-Day Reminder",
+      "recipient": "ananya.pandey@example.com",
+      "subject": "Reminder: Your Event Arun & Meera Grand Wedding is in 3 days",
+      "date": "2026-09-25 09:00",
+      "status": "Sent"
+    }
+  ]
+}

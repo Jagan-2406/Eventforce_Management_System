@@ -1,26 +1,21 @@
 {
   "name": "eventforce-management-system",
   "version": "1.0.0",
-  "description": "EventForce - Smart Event & Workforce Management System for Naan Mudhalvan Capstone Project",
+  "description": "EventForce Management System - Naan Mudhalvan Event Planner CRM",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node server.js"
   },
   "keywords": [
+    "eventforce",
+    "crm",
     "event-management",
-    "workforce-management",
-    "naan-mudhalvan",
-    "express",
-    "nodejs",
-    "fullstack"
+    "naan-mudhalvan"
   ],
-  "author": "Naan Mudhalvan Student Team",
-  "license": "ISC",
+  "author": "Naan Mudhalvan Student Developer",
+  "license": "MIT",
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2"
+    "express": "^4.21.2"
   }
 }
